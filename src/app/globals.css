@@ -1,0 +1,85 @@
+@import "tailwindcss";
+@import "@fortawesome/fontawesome-free/css/all.min.css";
+
+:root {
+  --background: #fdf6f0;
+  --foreground: #1e1e2f;
+  --card-bg: #ffffff;
+  --green-bg: #34d399;
+  --red-bg: #f87171;
+  --blue-bg: #60a5fa;
+  --button-text: #ffffff;
+  --muted: #6b7280;
+  --font-sans: Arial, Helvetica, sans-serif;
+  --transition-duration: 0.3s;
+  --lgm-first: #000000;
+  --lgm-bg: #ffffff; /* special LGM background */
+}
+
+[data-theme="dark"] {
+  --background: #181824;
+  --foreground: #e0e0f0;
+  --card-bg: #252540;
+  --green-bg: #22c55e;
+  --red-bg: #ef4444;
+  --blue-bg: #60a5fa;
+  --button-text: #ffffff;
+  --muted: #9aa6b2;
+  --lgm-first: #0b0b0b;
+  --lgm-bg: #f0f0f3; /* light bg for LGM first letter */
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  transition: background var(--transition-duration) ease,
+              color var(--transition-duration) ease;
+}
+
+.card {
+  background-color: var(--card-bg);
+  color: var(--foreground);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+  transition: background var(--transition-duration) ease,
+              color var(--transition-duration) ease,
+              box-shadow var(--transition-duration) ease;
+}
+
+.card:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  background-color: rgba(0,0,0,0.02);
+  transition: background var(--transition-duration) ease,
+              box-shadow var(--transition-duration) ease;
+}
+
+[data-theme="dark"] .card:hover {
+  background-color: rgba(255,255,255,0.05);
+}
+
+.lgm-first {
+  font-weight: 800;
+  color: var(--lgm-first);
+  background-color: var(--lgm-bg);
+  padding: 0 0.15rem;
+  border-radius: 2px;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.button {
+  background-color: var(--blue-bg);
+  color: var(--button-text);
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-duration) ease,
+              color var(--transition-duration) ease,
+              transform var(--transition-duration) ease;
+}
+
+.button:hover {
+  background-color: #3b82f6;
+}
