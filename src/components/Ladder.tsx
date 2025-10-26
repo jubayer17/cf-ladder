@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import RatingSelector from "./RatingSelector";
 import TagSelector from "./TagSelector";
 import ProblemList from "./ProblemList";
@@ -18,37 +18,40 @@ const Ladder: React.FC<LadderProps> = ({
 }) => {
   const [selectedRating, setSelectedRating] = useState<number>(800);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [userStatusMap, setUserStatusMap] = useState<
-    Record<string, UserStatus>
-  >({});
+  const [userStatusMap, setUserStatusMap] = useState<Record<string, UserStatus>>({});
+
+  // clear selectedTag when rating changes (so stale tag won't remain)
+  useEffect(() => {
+    setSelectedTag(null);
+  }, [selectedRating]);
 
   const problemsForRating = useMemo(
     () => problems.filter((p) => p.rating === selectedRating),
     [problems, selectedRating]
   );
 
-  const tags = useMemo(
-    () => Array.from(new Set(problemsForRating.flatMap((p) => p.tags || []))),
-    [problemsForRating]
-  );
-
-
+  // compute counts
   const tagCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    problemsForRating.forEach((p) => {
-      (p.tags || []).forEach((t) => {
-        counts[t] = (counts[t] || 0) + 1;
-      });
-    });
+    for (const p of problemsForRating) {
+      for (const t of p.tags || []) counts[t] = (counts[t] || 0) + 1;
+    }
     return counts;
   }, [problemsForRating]);
 
+  // sort tags by count desc, then alphabetically
+  const sortedTags = useMemo(() => {
+    const keys = Object.keys(tagCounts);
+    keys.sort((a, b) => {
+      const diff = (tagCounts[b] || 0) - (tagCounts[a] || 0);
+      return diff !== 0 ? diff : a.localeCompare(b);
+    });
+    return keys;
+  }, [tagCounts]);
 
   const filteredProblems = useMemo(
     () =>
-      problemsForRating.filter(
-        (p) => !selectedTag || p.tags?.includes(selectedTag)
-      ),
+      problemsForRating.filter((p) => !selectedTag || p.tags?.includes(selectedTag)),
     [problemsForRating, selectedTag]
   );
 
@@ -68,10 +71,10 @@ const Ladder: React.FC<LadderProps> = ({
 
         <div className="w-full">
           <TagSelector
-            tags={tags}
+            tags={sortedTags}
             tagCounts={tagCounts}
             selectedTag={selectedTag}
-            onSelectTag={setSelectedTag}
+            onSelectTag={(t) => setSelectedTag(t)}
           />
         </div>
       </div>
@@ -80,6 +83,8 @@ const Ladder: React.FC<LadderProps> = ({
         problems={filteredProblems}
         userStatusMap={userStatusMap}
         userSolvedSet={userSolvedSet}
+        selectedTag={selectedTag}
+        onStatusChange={handleStatusChange}
       />
       <Footer />
     </div>
