@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "@fortawesome/fontawesome-free/css/all.min.css";
 
+/* Theme variables */
 :root {
   --background: #fdf6f0;
   --foreground: #1e1e2f;
@@ -14,6 +15,11 @@
   --transition-duration: 0.3s;
   --lgm-first: #000000;
   --lgm-bg: #ffffff; /* special LGM background */
+
+  /* status-specific text colors (light mode defaults) */
+  --status-text-solved: #000000;
+  --status-text-failed: #000000;
+  --status-icon-color: #000000;
 }
 
 [data-theme="dark"] {
@@ -26,9 +32,15 @@
   --button-text: #ffffff;
   --muted: #9aa6b2;
   --lgm-first: #0b0b0b;
-  --lgm-bg: #f0f0f3; /* light bg for LGM first letter */
+  --lgm-bg: #f0f0f3;
+
+  /* in dark mode solved/failed text should use --button-text for contrast */
+  --status-text-solved: var(--button-text);
+  --status-text-failed: var(--button-text);
+  --status-icon-color: var(--button-text);
 }
 
+/* base page */
 body {
   background-color: var(--background);
   color: var(--foreground);
@@ -37,9 +49,10 @@ body {
               color var(--transition-duration) ease;
 }
 
+/* card base */
 .card {
   background-color: var(--card-bg);
-  color: var(--foreground);
+  color: var(--foreground);            /* default text color */
   border-radius: 0.75rem;
   padding: 1rem;
   box-shadow: 0 4px 8px rgba(0,0,0,0.08);
@@ -48,17 +61,16 @@ body {
               box-shadow var(--transition-duration) ease;
 }
 
+/* hover tweaks */
 .card:hover {
   box-shadow: 0 6px 20px rgba(0,0,0,0.12);
   background-color: rgba(0,0,0,0.02);
-  transition: background var(--transition-duration) ease,
-              box-shadow var(--transition-duration) ease;
 }
-
 [data-theme="dark"] .card:hover {
   background-color: rgba(255,255,255,0.05);
 }
 
+/* LGM style */
 .lgm-first {
   font-weight: 800;
   color: var(--lgm-first);
@@ -68,6 +80,7 @@ body {
   text-shadow: 0 1px 0 rgba(255,255,255,0.03);
 }
 
+/* buttons */
 .button {
   background-color: var(--blue-bg);
   color: var(--button-text);
@@ -79,7 +92,33 @@ body {
               color var(--transition-duration) ease,
               transform var(--transition-duration) ease;
 }
+.button:hover { background-color: #3b82f6; }
 
-.button:hover {
-  background-color: #3b82f6;
+/* ========== Status-specific color rules (use classes on .card) ========== */
+/* solved card — text color overrides (light: black, dark: var(--button-text)) */
+.card.solved { color: var(--status-text-solved); }
+/* failed card */
+.card.failed { color: var(--status-text-failed); }
+
+/* ensure inner elements inherit the card color unless they override */
+.card .index-badge,
+.card .problem-name,
+.card .problem-number,
+.card .solved-count,
+.card .user-icon {
+  color: inherit;
+}
+
+/* rating pill keeps its own contrast logic */
+.card .rating-pill {
+  display:inline-block;
+  vertical-align: middle;
+}
+
+/* tags area: tag colors come from JS util getTagColor, so keep default spacing */
+.card .tags { gap: 0.5rem; }
+
+/* small responsive / accessibility tweaks */
+@media (prefers-reduced-motion: reduce) {
+  .card, .button { transition: none !important; }
 }
