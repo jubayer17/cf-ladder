@@ -7,13 +7,15 @@ const USER_INFO_KEY = "cf_user_info_v1";
 const USER_SOLVED_KEY = "cf_user_solved_v1";
 
 interface EnterHandleProps {
-  onSubmitHandle: (handle: string) => void;
+  onSubmitHandle: (handle: string) => Promise<void>; // now returns Promise
   onClear?: () => void;
+  isLoading?: boolean; // optional external loading (not required)
 }
 
-const EnterHandle: React.FC<EnterHandleProps> = ({ onSubmitHandle, onClear }) => {
+const EnterHandle: React.FC<EnterHandleProps> = ({ onSubmitHandle, onClear, isLoading = false }) => {
   const [handle, setHandle] = useState("");
   const [savedHandle, setSavedHandle] = useState<string | null>(null);
+  const [localLoading, setLocalLoading] = useState(false);
 
   useEffect(() => {
     try {
@@ -23,20 +25,24 @@ const EnterHandle: React.FC<EnterHandleProps> = ({ onSubmitHandle, onClear }) =>
         return () => clearTimeout(id);
       }
     } catch {
-
+      // ignore
     }
   }, []);
 
-  const submit = () => {
+  const submit = async () => {
     const trimmed = handle.trim();
     if (!trimmed) return;
     setSavedHandle(trimmed);
     localStorage.setItem(USER_HANDLE_KEY, trimmed);
     setHandle("");
     try {
-      onSubmitHandle(trimmed);
-    } catch {
-
+      setLocalLoading(true);
+      await onSubmitHandle(trimmed);
+    } catch (err) {
+      console.warn("EnterHandle submit failed", err);
+      // optionally show UI error
+    } finally {
+      setLocalLoading(false);
     }
   };
 
@@ -50,19 +56,18 @@ const EnterHandle: React.FC<EnterHandleProps> = ({ onSubmitHandle, onClear }) =>
       localStorage.removeItem(USER_HANDLE_KEY);
       localStorage.removeItem(USER_INFO_KEY);
       localStorage.removeItem(USER_SOLVED_KEY);
-    } catch {
-
-    }
+    } catch { }
     if (onClear) {
       try {
         onClear();
-      } catch {
-
-      }
+      } catch { }
     }
-
-    window.location.reload();
+    // gentle: don't force reload; instead clear caches and UI will update
+    // but if you must reload, uncomment next line:
+    // window.location.reload();
   };
+
+  const busy = localLoading || isLoading;
 
   return (
     <div className="flex gap-2 items-center">
@@ -76,18 +81,39 @@ const EnterHandle: React.FC<EnterHandleProps> = ({ onSubmitHandle, onClear }) =>
             placeholder="Enter your handle, e.g. tourist"
             className="px-3 py-2 w-[300px] rounded border focus:outline-none focus:ring focus:ring-blue-500
               dark:bg-gray-800 dark:text-white dark:border-gray-700"
+            disabled={busy}
           />
           <button
             onClick={submit}
-            className="px-3 py-2  rounded bg-blue-600 text-white hover:bg-blue-700 transition"
+            className="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-60 flex items-center gap-2"
+            disabled={busy}
+            title={busy ? "Loading user data…" : "Submit handle"}
           >
-            Submit
+            {busy ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+                  <path d="M22 12a10 10 0 00-10-10" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+                </svg>
+                Loading
+              </>
+            ) : (
+              "Submit"
+            )}
           </button>
         </>
       ) : (
         <div className="flex items-center gap-2 bg-gray-200 dark:bg-gray-800 px-3 py-1 rounded">
           <span
-            onClick={() => savedHandle && onSubmitHandle(savedHandle)}
+            onClick={async () => {
+              if (!savedHandle) return;
+              try {
+                setLocalLoading(true);
+                await onSubmitHandle(savedHandle);
+              } finally {
+                setLocalLoading(false);
+              }
+            }}
             className="font-medium dark:text-white cursor-pointer hover:underline"
             title="Click to re-fetch submissions"
           >
@@ -100,6 +126,13 @@ const EnterHandle: React.FC<EnterHandleProps> = ({ onSubmitHandle, onClear }) =>
           >
             ✕
           </button>
+          {/* small spinner if external loading */}
+          {isLoading && (
+            <svg className="w-4 h-4 ml-2 animate-spin text-gray-600" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+              <path d="M22 12a10 10 0 00-10-10" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+            </svg>
+          )}
         </div>
       )}
     </div>
