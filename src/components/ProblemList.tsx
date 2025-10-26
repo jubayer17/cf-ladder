@@ -1,14 +1,19 @@
-import React, { useState, useEffect, useMemo } from "react";
+"use client";
+
+import React, { useEffect, useMemo, useState } from "react";
 import ProblemCard from "./ProblemCard";
 import ProblemSortControls from "./ProblemSortControls";
 import { Problem, UserStatus } from "../types";
 import { paginate } from "../utils/paginate";
+import { loadContestMap, parseDivisionFromContestName } from "../utils/cfContests";
 
 interface ProblemListProps {
   problems: Problem[];
   userStatusMap: Record<string, UserStatus>;
   userSolvedSet?: Set<string>;
   perPage?: number;
+  selectedTag?: string | null;
+  onStatusChange?: (problemKey: string, status: UserStatus) => void;
 }
 
 const CACHE_KEY = "cf_problems_cache_v1";
@@ -19,6 +24,8 @@ const ProblemList: React.FC<ProblemListProps> = ({
   userStatusMap,
   userSolvedSet = new Set(),
   perPage = 30,
+  selectedTag = null,
+  onStatusChange,
 }) => {
   const [page, setPage] = useState<number>(1);
   const [pageInput, setPageInput] = useState<string>("1");
@@ -26,6 +33,10 @@ const ProblemList: React.FC<ProblemListProps> = ({
   const [localProblems, setLocalProblems] = useState<Problem[]>([]);
   const [hideSolved, setHideSolved] = useState<boolean>(false);
 
+  // contestId -> contestName map loaded once
+  const [contestMap, setContestMap] = useState<Record<number, string> | null>(null);
+
+  // hydrate from cache if present
   useEffect(() => {
     try {
       const raw = localStorage.getItem(CACHE_KEY);
@@ -38,8 +49,12 @@ const ProblemList: React.FC<ProblemListProps> = ({
     }
   }, []);
 
+  // update cache when problems prop changes
   useEffect(() => {
-    if (!problems?.length) return;
+    if (!problems?.length) {
+      setLocalProblems([]);
+      return;
+    }
     setLocalProblems(problems);
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), problems }));
@@ -48,15 +63,38 @@ const ProblemList: React.FC<ProblemListProps> = ({
     }
   }, [problems]);
 
-  const source = localProblems.length ? localProblems : problems;
+  // load full contest map once (async). This is the recommended approach:
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const map = await loadContestMap();
+        if (!mounted) return;
+        setContestMap(map);
+      } catch {
+        if (!mounted) return;
+        setContestMap(null); // treat as unavailable
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-  // show loading skeleton when there are no problems yet
+  const source = localProblems.length ? localProblems : problems;
   const isLoading = source.length === 0;
 
+  // Reset to page 1 whenever selectedTag changes
+  useEffect(() => {
+    setPage(1);
+    setPageInput("1");
+  }, [selectedTag]);
+
   const filteredSorted = useMemo(() => {
-    let filtered = [...source];
+    let list = [...source];
+
     if (hideSolved) {
-      filtered = filtered.filter((p) => {
+      list = list.filter((p) => {
         const key = `${p.contestId}-${p.index}`;
         const status: UserStatus =
           userStatusMap[key] ?? (userSolvedSet.has(key) ? "solved" : "unsolved");
@@ -66,14 +104,29 @@ const ProblemList: React.FC<ProblemListProps> = ({
 
     switch (sortOption) {
       case "acceptance":
-        return filtered.sort((a, b) => (b.solvedCount ?? 0) - (a.solvedCount ?? 0));
+        list.sort((a, b) => (b.solvedCount ?? 0) - (a.solvedCount ?? 0));
+        break;
       case "old":
-        return filtered.sort((a, b) => (a.contestId ?? 0) - (b.contestId ?? 0));
+        list.sort((a, b) => (a.contestId ?? 0) - (b.contestId ?? 0));
+        break;
       case "new":
       default:
-        return filtered.sort((a, b) => (b.contestId ?? 0) - (a.contestId ?? 0));
+        list.sort((a, b) => (b.contestId ?? 0) - (a.contestId ?? 0));
+        break;
     }
+    return list;
   }, [source, sortOption, hideSolved, userStatusMap, userSolvedSet]);
+
+  // precompute division map (contestId -> divisionLabel) from contestMap
+  const contestDivisionMap = useMemo(() => {
+    if (!contestMap) return null;
+    const m: Record<number, string | null> = {};
+    for (const idStr of Object.keys(contestMap)) {
+      const id = Number(idStr);
+      m[id] = parseDivisionFromContestName(contestMap[id]);
+    }
+    return m;
+  }, [contestMap]);
 
   const totalPages = Math.max(1, Math.ceil(filteredSorted.length / perPage));
   const paged = paginate(filteredSorted, page, perPage);
@@ -86,98 +139,81 @@ const ProblemList: React.FC<ProblemListProps> = ({
     setPage(num);
   };
 
-  // simple skeleton card used while loading
-  const SkeletonCard = () => (
-    <div className="w-full p-4 rounded-lg shadow-sm bg-[var(--card-bg)] animate-pulse">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded bg-gray-200 dark:bg-gray-700" />
-        <div className="flex-1">
-          <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2" />
-          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
-        </div>
-      </div>
-    </div>
-  );
-
   return (
-    <div className="space-y-4" aria-busy={isLoading}>
-      {/* Controls: if loading, show disabled controls */}
-      {isLoading ? (
-        <div className="flex items-center justify-between gap-4">
-          <div className="h-10 w-64 rounded bg-gray-200 dark:bg-gray-700 animate-pulse" />
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-20 rounded bg-gray-200 dark:bg-gray-700 animate-pulse" />
-            <div className="h-8 w-16 rounded bg-gray-200 dark:bg-gray-700 animate-pulse" />
-          </div>
-        </div>
-      ) : (
-        <ProblemSortControls
-          sortOption={sortOption}
-          onSortChange={(v) => {
-            setSortOption(v);
-            handlePageChange(1);
+    <div className="space-y-4">
+      <ProblemSortControls
+        sortOption={sortOption}
+        onSortChange={(v) => {
+          setSortOption(v);
+          handlePageChange(1);
+        }}
+        hideSolved={hideSolved}
+        onHideSolvedChange={(v) => setHideSolved(v)}
+      />
+
+      {paged.map((p, idx) => {
+        const key = `${p.contestId}-${p.index}`;
+        const status: UserStatus =
+          userStatusMap[key] ?? (userSolvedSet.has(key) ? "solved" : "unsolved");
+        const problemNumber = (page - 1) * perPage + idx + 1;
+
+        // compute division (fast) from preloaded contestDivisionMap if available
+        const contestId = p.contestId ?? undefined;
+        const division =
+          contestId && contestDivisionMap && contestDivisionMap[contestId] ? contestDivisionMap[contestId] : null;
+
+        // optionally pass full contest name too
+        const contestName = contestId && contestMap ? contestMap[contestId] : undefined;
+
+        return (
+          <ProblemCard
+            key={key}
+            problem={p}
+            status={status}
+            number={problemNumber}
+            contestDivision={division ?? undefined}
+            contestName={contestName}
+          // onChangeStatus={(s) => onStatusChange?.(key, s)}
+          />
+        );
+      })}
+
+      <div className="flex justify-center gap-2 mt-4 items-center">
+        <button
+          disabled={page === 1}
+          onClick={() => handlePageChange(page - 1)}
+          className="px-3 py-1 rounded bg-gray-300 dark:bg-gray-700 dark:text-white disabled:opacity-50"
+        >
+          Prev
+        </button>
+
+        <span className="px-2 py-1 text-[var(--foreground)]">Page</span>
+
+        <input
+          type="text"
+          value={pageInput}
+          onChange={(e) => setPageInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              const num = parseInt(pageInput, 10);
+              handlePageChange(isNaN(num) ? 1 : num);
+            }
           }}
-          hideSolved={hideSolved}
-          onHideSolvedChange={(v) => setHideSolved(v)}
+          className="w-16 px-2 py-1 rounded border dark:bg-gray-800 dark:text-white dark:border-gray-700 text-center appearance-none"
+          inputMode="numeric"
+          pattern="[0-9]*"
         />
-      )}
 
-      {/* Problem list or skeletons */}
-      {isLoading ? (
-        // show 6 skeleton cards for perceived speed
-        <div className="grid grid-cols-1 gap-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
-      ) : (
-        <>
-          {paged.map((p, idx) => {
-            const key = `${p.contestId}-${p.index}`;
-            const status: UserStatus =
-              userStatusMap[key] ?? (userSolvedSet.has(key) ? "solved" : "unsolved");
-            const problemNumber = (page - 1) * perPage + idx + 1;
-            return <ProblemCard key={key} problem={p} status={status} number={problemNumber} />;
-          })}
+        <span className="px-2 py-1 text-[var(--foreground)]">of {totalPages}</span>
 
-          <div className="flex justify-center gap-2 mt-4 items-center">
-            <button
-              disabled={page === 1}
-              onClick={() => handlePageChange(page - 1)}
-              className="px-3 py-1 rounded bg-gray-300 dark:bg-gray-700 dark:text-white disabled:opacity-50"
-            >
-              Prev
-            </button>
-
-            <span className="px-2 py-1 text-[var(--foreground)]">Page</span>
-
-            <input
-              type="text"
-              value={pageInput}
-              onChange={(e) => setPageInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  const num = parseInt(pageInput, 10);
-                  handlePageChange(isNaN(num) ? 1 : num);
-                }
-              }}
-              className="w-16 px-2 py-1 rounded border dark:bg-gray-800 dark:text-white dark:border-gray-700 text-center appearance-none"
-              inputMode="numeric"
-              pattern="[0-9]*"
-            />
-
-            <span className="px-2 py-1 text-[var(--foreground)]">of {totalPages}</span>
-
-            <button
-              disabled={page === totalPages}
-              onClick={() => handlePageChange(page + 1)}
-              className="px-3 py-1 rounded bg-gray-300 dark:bg-gray-700 dark:text-white disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-        </>
-      )}
+        <button
+          disabled={page === totalPages}
+          onClick={() => handlePageChange(page + 1)}
+          className="px-3 py-1 rounded bg-gray-300 dark:bg-gray-700 dark:text-white disabled:opacity-50"
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 };
