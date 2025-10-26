@@ -12,6 +12,7 @@
     "@fortawesome/fontawesome-free": "^7.1.0",
     "@heroicons/react": "^2.2.0",
     "@upstash/redis": "^1.35.6",
+    "axios": "^1.12.2",
     "formidable": "^3.5.4",
     "next": "16.0.0",
     "nodemailer": "^7.0.10",
