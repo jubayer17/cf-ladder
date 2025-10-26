@@ -1,8 +1,10 @@
-import React from "react";
+"use client";
+
+import React, { useMemo } from "react";
 import { getTagColor } from "../utils/tagColors";
 
 interface TagSelectorProps {
-  tags: string[];
+  tags: string[]; // expected to be sorted by count desc, then alphabetically
   tagCounts?: Record<string, number>;
   selectedTag: string | null;
   onSelectTag: (tag: string | null) => void;
@@ -16,7 +18,17 @@ const TagSelector: React.FC<TagSelectorProps> = ({
   onSelectTag,
   isDarkMode = false,
 }) => {
-  const allTags = [null, ...tags];
+  // defensive: if tags passed unsorted, sort by counts desc then alpha
+  const orderedTags = useMemo(() => {
+    const copy = [...tags];
+    copy.sort((a, b) => {
+      const diff = (tagCounts[b] || 0) - (tagCounts[a] || 0);
+      return diff !== 0 ? diff : a.localeCompare(b);
+    });
+    return copy;
+  }, [tags, tagCounts]);
+
+  const allTags = [null, ...orderedTags];
 
   return (
     <div className="flex flex-wrap gap-2 p-2">
@@ -24,9 +36,7 @@ const TagSelector: React.FC<TagSelectorProps> = ({
         const label = tag === null ? "All" : tag;
         const { bg, text } = getTagColor(tag, isDarkMode);
 
-        const count = tag
-          ? tagCounts[tag] ?? 0
-          : Object.values(tagCounts).reduce((a, b) => a + b, 0);
+        const count = tag ? tagCounts[tag] ?? 0 : Object.values(tagCounts).reduce((a, b) => a + b, 0);
 
         return (
           <button
@@ -35,9 +45,9 @@ const TagSelector: React.FC<TagSelectorProps> = ({
             style={{
               backgroundColor: bg,
               color: text,
-              opacity: selectedTag === tag ? 1 : 0.85,
+              opacity: selectedTag === tag ? 1 : 0.95,
             }}
-            className={`px-4 py-2 mx-1 my-1 rounded-lg font-medium transition-colors duration-200 hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm ${selectedTag === tag ? "border-3 border-blue-700" : ""
+            className={`px-4 py-2 mx-1 my-1 rounded-lg font-medium transition-colors duration-200 hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm ${selectedTag === tag ? "border-2 border-blue-700" : ""
               }`}
           >
             <span className="mr-2">{label}</span>
@@ -45,7 +55,6 @@ const TagSelector: React.FC<TagSelectorProps> = ({
           </button>
         );
       })}
-
     </div>
   );
 };
