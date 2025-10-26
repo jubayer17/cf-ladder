@@ -9,6 +9,8 @@ interface ProblemCardProps {
   status: UserStatus;
   number?: number;
   isDarkMode?: boolean;
+  contestDivision?: string;
+  contestName?: string;
 }
 
 const getDivisionFromRating = (rating?: number | null) => {
