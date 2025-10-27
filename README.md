@@ -1,25 +1,23 @@
 # ⚡ CF Ladder
 
-A full-stack Codeforces practice tracker (Next.js 16 frontend + Express backend) for building problem ladders, filtering problems, and tracking solved problems.
+A full-stack **Codeforces practice tracker** built with **Next.js 16** and **Express.js** — helping you organize, filter, and track your problem-solving progress.
 
-## Tech Stack 🧰
+**🔗 Live:** [cf-ladder-pro.vercel.app](https://cf-ladder-pro.vercel.app/)
 
-- **Frontend:** Next.js 16, React, TypeScript, Tailwind CSS 🖥️  
-- **Backend:** Node.js, Express.js, Axios ⚙️  
-- **Database (optional):** MongoDB / Firebase Firestore 🗄️
+---
 
-## Quick Start 🚀
+## 🧰 Tech Stack
 
-    # clone
-    git clone https://github.com/jubayer17/cf-ladder.git
-    cd cf-ladder
+* **Frontend:** Next.js 16, React, TypeScript, Tailwind CSS
+* **Backend:** Node.js, Express.js, Axios
+* **Database (optional):** MongoDB / Firebase Firestore
 
-    # frontend
-    cd frontend
-    npm install
-    npm run dev       # http://localhost:3000
+---
 
-    # backend (new terminal)
-    cd ../backend
-    npm install
-    npm start         # http://localhost:4000
+## ✨ Features
+
+* 🌙 **Dark & Light Mode** for flexible viewing
+* 🏷️ **Rating & Topic Filters** for focused practice
+* 🧾 **Handle-Based Stats** to show Codeforces progress
+* ⚡ **Smart UI** with smooth performance
+* 🐞 **Bug Report Support** for instant feedback
