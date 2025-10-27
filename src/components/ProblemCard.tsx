@@ -98,7 +98,7 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
           {problem.index}
         </span>
 
-        {division && (
+        {/* {division && (
           <span
             aria-hidden
             className={`ml-1 px-2 py-0.5 rounded text-sm font-medium flex-shrink-0 ${isDark ? "bg-blue-900 text-blue-100" : "bg-blue-100 text-blue-800"
@@ -114,7 +114,7 @@ const ProblemCard: React.FC<ProblemCardProps> = ({
           >
             {division}
           </span>
-        )}
+        )} */}
 
       </div>
 
