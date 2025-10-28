@@ -8,26 +8,26 @@ const Footer: React.FC = () => {
             <div className="max-w-4xl mx-auto flex flex-col items-center gap-6 text-center">
 
                 <p className="text-base md:text-lg font-medium">
-                    If you found this useful, you can <span className="font-semibold">buy me a coffee ☕</span> or <span className="font-semibold">follow me ✨</span> to support!
+                    If you found this useful, you can <span className="font-semibold">give a star ✨</span> or <span className="font-semibold">follow me 🍂</span> to support!
                 </p>
 
                 {/* CTA buttons */}
                 <div className="flex flex-wrap gap-4 justify-center">
                     <a
-                        href="https://www.buymeacoffee.com/yourname"
+                        href="https://github.com/jubayer17"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-6 py-2 bg-yellow-400 dark:bg-yellow-500 text-gray-900 dark:text-gray-900 rounded-full font-semibold shadow-md hover:shadow-lg hover:scale-105 transform transition-all duration-300"
                     >
-                        Buy Coffee ☕
+                        Follow me 🩵
                     </a>
                     <a
-                        href="https://github.com/jubayer17"
+                        href="https://github.com/jubayer17/cf-ladder"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-6 py-2 bg-purple-500 dark:bg-purple-600 text-white rounded-full font-semibold shadow-md hover:shadow-lg hover:scale-105 transform transition-all duration-300"
                     >
-                        Follow ✨
+                        Give a star ✨
                     </a>
                 </div>
 
