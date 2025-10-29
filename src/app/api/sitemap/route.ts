@@ -3,9 +3,7 @@ import { NextResponse } from "next/server";
 
 const BASE_URL = "https://cf-ladder-pro.vercel.app";
 
-// Use a synchronous GET for simplicity
 export function GET() {
-    // Fixed ISO date (optional: or you can update on deploy)
     const lastMod = new Date().toISOString();
 
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
