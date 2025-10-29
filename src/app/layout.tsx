@@ -13,46 +13,66 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CF Ladder - Codeforces Competitive Programming Tracker",
+  title: "CF Ladder – Smart Codeforces Ladder & Problem Tracker",
   description:
-    "Track your Codeforces progress, ladder ranking, and problem-solving history easily with CF Ladder.",
-  keywords: `
-    CF Ladder, Codeforces Ladder, CP Ladder, Competitive Programming Ladder,
-    Codeforces Tracker, CP Tracker, Ladder Ranking, Programming Challenges,
-    CF Rank, CF Progress, Codeforces Stats, Problem Solving Tracker
-  `,
+    "Boost your Codeforces rating with CF Ladder – the smarter way to practice problems, track progress, and level up your competitive programming journey.",
+  keywords: [
+    "CF Ladder",
+    "Codeforces Ladder",
+    "Competitive Programming Ladder",
+    "CF Tracker",
+    "Codeforces Problem Tracker",
+    "Competitive Programming Practice",
+    "CF Ranking",
+    "CF Stats",
+  ],
   authors: [{ name: "Jubayer Ahmed" }],
   viewport: "width=device-width, initial-scale=1",
   openGraph: {
-    title: "CF Ladder - Codeforces Competitive Programming Tracker",
+    title: "CF Ladder – Smart Codeforces Ladder & Problem Tracker",
     description:
-      "Track your Codeforces progress, ladder ranking, and problem-solving history easily with CF Ladder.",
+      "Practice Codeforces problems smartly, track progress, and improve your rating with CF Ladder – your go-to CP companion.",
     url: "https://cf-ladder-pro.vercel.app/",
     siteName: "CF Ladder",
     type: "website",
+    locale: "en_US",
     images: [
       {
         url: "https://res.cloudinary.com/ddysafn4k/image/upload/v1761489634/coding_8061324_p0o1nb.png",
         width: 1200,
         height: 630,
-        alt: "CF Ladder - Competitive Programming Tracker",
+        alt: "CF Ladder – Codeforces Ladder & Problem Tracker",
       },
     ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CF Ladder – Smart Codeforces Ladder & Problem Tracker",
+    description:
+      "Track your Codeforces progress, practice problems efficiently, and climb the competitive programming ladder.",
+    images: [
+      "https://res.cloudinary.com/ddysafn4k/image/upload/v1761489634/coding_8061324_p0o1nb.png",
+    ],
+  },
+  metadataBase: new URL("https://cf-ladder-pro.vercel.app"),
+  alternates: {
+    canonical: "https://cf-ladder-pro.vercel.app",
   },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <head>
+        {/* Google Site Verification */}
         <meta
           name="google-site-verification"
           content="DkY7lbwjx25NBdwjWjmupzINAtZ7-cIT9RMnVV3Wy-c"
         />
+
+        {/* Font Awesome */}
         <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
