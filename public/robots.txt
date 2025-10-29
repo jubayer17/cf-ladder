@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://cf-ladder-pro.vercel.app/sitemap.xml
