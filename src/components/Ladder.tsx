@@ -86,7 +86,7 @@ const Ladder: React.FC<LadderProps> = ({
         selectedTag={selectedTag}
         onStatusChange={handleStatusChange}
       />
-      <Footer />
+
     </div>
   );
 };
