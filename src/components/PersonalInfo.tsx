@@ -1,40 +1,68 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { getColorForRating, getRatingName, getHandleParts } from "../utils/ratingColors";
+import {
+  getColorForRating,
+  getRatingName,
+  getHandleParts,
+} from "../utils/ratingColors";
+import { useAppContext } from "@/context/AppContext";
+
+const SuccessChart = dynamic(() => import("./SuccessChart"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-36 h-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+  ),
+});
 
 interface PersonalInfoProps {
-  profileImage: string;
-  handle: string;
+  profileImage?: string;
+  handle?: string;
   currentRating?: number | null;
   maxRating?: number | null;
-  totalSolved?: number;
-  totalUnsolved?: number;
   profileUrl?: string;
   isLoading?: boolean;
 }
 
-// lazy-load SuccessChart to reduce initial bundle and speed first paint
-const SuccessChart = dynamic(() => import("./SuccessChart"), {
-  ssr: false,
-  loading: () => <div className="w-36 h-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />,
-});
+const normalizeIndex = (i: any) => String(i ?? "").toUpperCase().trim();
+const makeKey = (contestId: number | string | undefined, idx: any) =>
+  `${String(contestId ?? "")}-${normalizeIndex(idx)}`;
 
 const PersonalInfo: React.FC<PersonalInfoProps> = ({
   profileImage,
-  handle,
+  handle = "",
   currentRating = null,
   maxRating = null,
-  totalSolved = 0,
-  totalUnsolved = 0,
-  profileUrl,
   isLoading = false,
 }) => {
-  // quick skeleton while loading (unchanged)
-  if (isLoading) {
+  const {
+    problems,
+    userSolvedSet,
+    attemptedUnsolvedProblems,
+    loadingProblems,
+    fetchProblems,
+  } = useAppContext();
+
+  // Force reload when handle changes
+  useEffect(() => {
+    if (handle) {
+      fetchProblems();
+    }
+  }, [handle, fetchProblems]);
+
+  const [ready, setReady] = useState(false);
+  useEffect(() => {
+    // Wait until problems + attempted data loaded
+    if (problems?.length && (userSolvedSet || attemptedUnsolvedProblems)) {
+      setReady(true);
+    }
+  }, [problems, userSolvedSet, attemptedUnsolvedProblems]);
+
+  // Skeleton while loading
+  if (isLoading || loadingProblems || !ready) {
     return (
-      <div className="w-full pl-15 max-w-7xl mx-auto p-6 shadow-md rounded-2xl mt-4 bg-[var(--card-bg)]">
+      <div className="w-full max-w-7xl mx-auto p-6 shadow-md rounded-2xl mt-4 bg-[var(--card-bg)]">
         <div className="flex items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="w-20 h-20 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
@@ -42,9 +70,12 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
               <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
               <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mt-2" />
               <div className="flex gap-2 mt-2">
-                <div className="h-6 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-                <div className="h-6 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-                <div className="h-6 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                {[...Array(3)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-6 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"
+                  />
+                ))}
               </div>
             </div>
           </div>
@@ -54,37 +85,60 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
     );
   }
 
-  // memoize computed values so re-renders are cheap
-  const color = useMemo(() => getColorForRating(currentRating ?? undefined), [currentRating]);
-  const ratingName = useMemo(() => getRatingName(currentRating ?? undefined), [currentRating]);
-  const handleParts = useMemo(() => getHandleParts(handle, currentRating ?? undefined), [handle, currentRating]);
+  // Unique attempted-unsolved problem keys
+  const attemptedKeys = useMemo(
+    () => new Set((attemptedUnsolvedProblems || []).map((a) => a.key)),
+    [attemptedUnsolvedProblems]
+  );
+
+  // Count solved, attempted, and not tried
+  const { totalSolved, totalAttemptedUnsolved, totalNotTried } = useMemo(() => {
+    const solvedSet = userSolvedSet || new Set<string>();
+    const attemptedCount = attemptedKeys.size;
+    const totalProblems =
+      problems?.filter((p) => p && p.contestId != null).length ?? 0;
+
+    const solvedCount = solvedSet.size;
+    const notTried = Math.max(
+      0,
+      totalProblems - (solvedCount + attemptedCount)
+    );
+
+    return {
+      totalSolved: solvedCount,
+      totalAttemptedUnsolved: attemptedCount,
+      totalNotTried: notTried,
+    };
+  }, [problems, userSolvedSet, attemptedKeys]);
+
+  const color = useMemo(
+    () => getColorForRating(currentRating ?? undefined),
+    [currentRating]
+  );
+  const ratingName = useMemo(
+    () => getRatingName(currentRating ?? undefined),
+    [currentRating]
+  );
+  const handleParts = useMemo(
+    () => getHandleParts(handle ?? "", currentRating ?? undefined),
+    [handle, currentRating]
+  );
 
   const progress =
-    typeof currentRating === "number" && typeof maxRating === "number" && maxRating > 0
+    typeof currentRating === "number" &&
+      typeof maxRating === "number" &&
+      maxRating > 0
       ? Math.max(0, Math.min(100, Math.round((currentRating / maxRating) * 100)))
       : 0;
 
-  const bg = (c: string, a = 0.12) => {
-    // defensive: if color isn't a hex, fallback to rgba(0,0,0, a)
-    try {
-      const hex = c.replace("#", "");
-      const r = parseInt(hex.substring(0, 2), 16);
-      const g = parseInt(hex.substring(2, 4), 16);
-      const b = parseInt(hex.substring(4, 6), 16);
-      return `rgba(${r},${g},${b},${a})`;
-    } catch {
-      return `rgba(0,0,0,${a})`;
-    }
-  };
-
-  // display friendly defaults instead of "null" or "undefined"
-  const displayRating = typeof currentRating === "number" ? String(currentRating) : "—";
+  const displayRating =
+    typeof currentRating === "number" ? String(currentRating) : "—";
   const displayMax = typeof maxRating === "number" ? String(maxRating) : "—";
 
   return (
     <div
-      className="w-full pl-15 max-w-7xl mx-auto p-6 shadow-md rounded-2xl mt-4"
-      style={{ backgroundColor: "var(--card-bg)", color: "var(--foreground)", transition: "background 0.3s, color 0.3s" }}
+      className="w-full max-w-7xl mx-auto p-6 shadow-md rounded-2xl mt-4"
+      style={{ backgroundColor: "var(--card-bg)", color: "var(--foreground)" }}
     >
       <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
         <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -99,9 +153,13 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
             <div className="flex flex-col items-left gap-2">
               <span className="text-2xl font-semibold">
                 {handleParts.map((p, i) => {
-                  const isVar = typeof p.color === "string" && p.color.startsWith("var(");
-                  const style: React.CSSProperties = isVar ? {} : { color: p.color };
-                  const cls = p.color === "var(--lgm-first)" ? "lgm-first" : "";
+                  const isVar =
+                    typeof p.color === "string" && p.color.startsWith("var(");
+                  const style: React.CSSProperties = isVar
+                    ? {}
+                    : { color: p.color };
+                  const cls =
+                    p.color === "var(--lgm-first)" ? "lgm-first" : "";
                   return (
                     <span key={i} className={cls} style={style}>
                       {p.text}
@@ -113,7 +171,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
               <span
                 style={{
                   color,
-                  border: `1px solid ${bg(color, 0.18)}`,
+                  border: `1px solid ${color}`,
                   padding: "0.18rem 0.45rem",
                   borderRadius: 8,
                   fontWeight: 600,
@@ -126,35 +184,78 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
             </div>
 
             <div className="flex flex-wrap gap-4 mt-2 text-sm">
-              <span className="px-2 py-1 rounded" style={{ backgroundColor: "var(--blue-bg)", color: "var(--button-text)" }}>
+              <span
+                className="px-2 py-1 rounded"
+                style={{
+                  backgroundColor: "var(--blue-bg)",
+                  color: "var(--button-text)",
+                }}
+              >
                 Current Rating: {displayRating}
               </span>
-              <span className="px-2 py-1 rounded" style={{ backgroundColor: "var(--green-bg)", color: "var(--button-text)" }}>
+              <span
+                className="px-2 py-1 rounded"
+                style={{
+                  backgroundColor: "var(--green-bg)",
+                  color: "var(--button-text)",
+                }}
+              >
                 Max Rating: {displayMax}
               </span>
-              <span className="px-2 py-1 rounded" style={{ backgroundColor: "var(--blue-bg)", color: "var(--button-text)" }}>
-                Solved: {totalSolved ?? 0}
+              <span
+                className="px-2 py-1 rounded"
+                style={{
+                  backgroundColor: "var(--blue-bg)",
+                  color: "var(--button-text)",
+                }}
+              >
+                Solved: {totalSolved}
               </span>
               <span
-                className="px-2 py-1 rounded cursor-pointer hover:opacity-80 transition"
-                style={{ backgroundColor: "var(--red-bg)", color: "var(--button-text)" }}
+                className="px-2 py-1 rounded"
+                style={{
+                  backgroundColor: "var(--red-bg)",
+                  color: "var(--button-text)",
+                }}
               >
-                Remaining: {totalUnsolved ?? 0}
+                Attempted Unsolved: {totalAttemptedUnsolved}
+              </span>
+              <span
+                className="px-2 py-1 rounded"
+                style={{
+                  backgroundColor: "#9CA3AF",
+                  color: "var(--button-text)",
+                }}
+              >
+                Not Tried: {totalNotTried}
               </span>
             </div>
           </div>
         </div>
 
         <div className="flex justify-center sm:justify-end w-full sm:w-auto">
-          <SuccessChart totalSolved={totalSolved ?? 0} totalUnsolved={totalUnsolved ?? 0} />
+          <SuccessChart
+            totalSolved={totalSolved}
+            totalAttemptedUnsolved={totalAttemptedUnsolved}
+            totalNotTried={totalNotTried}
+          />
         </div>
       </div>
 
       <div className="mt-4 flex items-center gap-3">
-        <div className="progress-wrap" aria-hidden style={{ width: 200, height: 10, marginTop: 12 }}>
+        <div
+          className="progress-wrap"
+          aria-hidden
+          style={{ width: 200, height: 10, marginTop: 12 }}
+        >
           <div
             className="progress-inner"
-            style={{ width: `${progress}%`, background: `linear-gradient(90deg, ${color}, ${color})` }}
+            style={{
+              width: `${progress}%`,
+              background: `linear-gradient(90deg, ${color}, ${color})`,
+              height: "100%",
+              borderRadius: 6,
+            }}
           />
         </div>
       </div>
@@ -162,5 +263,4 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({
   );
 };
 
-// avoid unnecessary re-renders from parent updates
 export default React.memo(PersonalInfo);
