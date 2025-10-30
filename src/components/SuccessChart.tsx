@@ -10,7 +10,7 @@ interface SuccessChartProps {
   size?: number; // optional override for outer container (px)
 }
 
-const COLORS = ["#3B82F6", "#E11D48", "#9CA3AF"]; // blue, red, gray
+const COLORS = ["var(--blue-bg)", "var(--red-bg)", "var(--muted)"];
 const NAMES = ["Solved", "Attempted Unsolved", "Not Tried"];
 
 const formatNumber = (n: number) => n.toLocaleString();
@@ -19,7 +19,7 @@ const SuccessChart: React.FC<SuccessChartProps> = ({
   totalSolved,
   totalAttemptedUnsolved,
   totalNotTried,
-  size = 180, // 🔥 slightly bigger by default
+  size = 180,
 }) => {
   const data = useMemo(
     () => [
@@ -41,10 +41,7 @@ const SuccessChart: React.FC<SuccessChartProps> = ({
     [data, total]
   );
 
-  const centerText = useMemo(() => {
-    const solved = withPerc[0]?.percent ?? 0;
-    return `${solved}%`;
-  }, [withPerc]);
+  const centerText = useMemo(() => `${withPerc[0]?.percent ?? 0}%`, [withPerc]);
 
   const tooltipFormatter = (value: number, name: string) => {
     const item = withPerc.find((i) => i.name === name) || null;
@@ -75,10 +72,13 @@ const SuccessChart: React.FC<SuccessChartProps> = ({
               stroke="none"
               isAnimationActive={true}
             >
-              {(total === 0 ? emptyData : withPerc).map((entry, index) => {
-                if (total === 0) return <Cell key={`cell-empty`} fill="#E5E7EB" />;
-                return <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />;
-              })}
+              {(total === 0 ? emptyData : withPerc).map((entry, index) =>
+                total === 0 ? (
+                  <Cell key={`cell-empty`} fill="var(--muted)" />
+                ) : (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                )
+              )}
             </Pie>
 
             <Tooltip
@@ -87,7 +87,8 @@ const SuccessChart: React.FC<SuccessChartProps> = ({
               wrapperStyle={{
                 zIndex: 9999,
                 fontSize: "0.75rem",
-                backgroundColor: "#fff",
+                backgroundColor: "var(--card-bg)",
+                color: "var(--foreground)",
                 borderRadius: "8px",
                 padding: "4px 8px",
                 boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
@@ -101,23 +102,12 @@ const SuccessChart: React.FC<SuccessChartProps> = ({
           className="absolute inset-0 flex flex-col items-center justify-center text-center"
           style={{ pointerEvents: "none" }}
         >
-          <div className="text-base font-semibold text-gray-800">{centerText}</div>
-          <div className="text-xs text-gray-500">Solved</div>
+          <div className="text-base font-semibold text-status-text-solved">
+            {centerText}
+          </div>
+          <div className="text-xs text-status-text-failed">Solved</div>
         </div>
       </div>
-
-
-      {/* <div className="flex flex-col justify-center gap-3 mt-5 text-xs text-gray-600">
-        {withPerc.map((d, i) => (
-          <div key={i} className="flex items-center gap-1">
-            <span
-              className="inline-block w-3 h-3 rounded-full shadow-sm"
-              style={{ backgroundColor: COLORS[i] }}
-            ></span>
-            <span className="font-medium">{d.name}</span>
-          </div>
-        ))}
-      </div> */}
     </div>
   );
 };
