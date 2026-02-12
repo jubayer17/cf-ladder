@@ -1,11 +1,14 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Spinner from "@/components/contests/Spinner";
-import ContestRow from "@/components/contests/ContestRow";
-import { useAppContext } from "@/context/AppContext";
+import { useAppContext, makeKey, AttemptInfo } from "@/context/AppContext";
 import type { ProblemInfo } from "@/components/contests/ProblemBox";
 import type { ContestInfo as CI } from "@/components/contests/ContestNameCell";
+import ContestHeader from "@/components/contests/ContestHeader";
+import SectionTabs from "@/components/contests/SectionTabs";
+import ContestList from "@/components/contests/ContestList";
+import MissingProblemsWarning from "@/components/contests/MissingProblemsWarning";
+import ContestPagination from "@/components/contests/ContestPagination";
 
 /* CONFIG */
 // Use environment variable or fallback to localhost for development
@@ -317,10 +320,9 @@ export default function Page(): React.ReactElement {
 
     const [hardJobState, setHardJobState] = useState<HardReloadJob | null>(null);
 
-    const { handle, userSolvedSet } = useAppContext();
+    const { handle, userSolvedSet, attemptedUnsolvedProblems, refreshContestUserSubmissions, refreshUserSubmissions } = useAppContext();
 
     const normalizeIndexLocal = (idx: any) => String(idx ?? "").toUpperCase().trim();
-    const problemKey = (contestId?: number, index?: string) => `${contestId ?? "0"}-${normalizeIndexLocal(index)}`;
 
     // Convert userSolvedSet to solvedMap format for ContestRow
     const solvedMap = useMemo(() => {
@@ -331,8 +333,13 @@ export default function Page(): React.ReactElement {
         return map;
     }, [userSolvedSet]);
 
-    // For now, we don't have attempted info from AppContext, so empty map
-    const attemptedMap: Record<string, true> = useMemo(() => ({}), []);
+    const attemptedMap = useMemo(() => {
+        const map: Record<string, AttemptInfo> = {};
+        attemptedUnsolvedProblems.forEach((a) => {
+            map[a.key] = a;
+        });
+        return map;
+    }, [attemptedUnsolvedProblems]);
 
     /* schedule prefetch for section (small idle chunks) */
     const schedulePrefetchSection = useCallback((contestIds: number[]) => {
@@ -1088,6 +1095,18 @@ export default function Page(): React.ReactElement {
     /* per-contest manual refresh */
     const refreshContest = useCallback(async (contestId: number) => {
         setPerContestLoading((m) => ({ ...m, [contestId]: true }));
+
+        // 1. Refresh user submissions FIRST (user intent is often to check status)
+        if (handle) {
+            try {
+                // Try contest-specific refresh first (more efficient/targeted)
+                await refreshContestUserSubmissions(contestId, handle);
+            } catch (e) {
+                console.warn("Contest submission refresh failed, falling back to global", e);
+                try { await refreshUserSubmissions(handle); } catch { }
+            }
+        }
+
         try {
             // Clear all caches for this contest first
             const key = `${PROBLEM_KEY_PREFIX}${contestId}`;
@@ -1198,11 +1217,12 @@ export default function Page(): React.ReactElement {
         for (const [k, arr] of Object.entries(contestProblemsMap)) {
             const id = Number(k);
             out[id] = (arr || []).map((p) => {
-                const key = problemKey(p.contestId, p.index);
+                const key = makeKey(p.contestId, p.index);
                 const solved = !!solvedMap[key];
-                const attempted = !!attemptedMap[key];
-                const failed = attempted && !solved;
-                return { ...p, solved, failed } as ProblemInfo & { solved?: boolean; failed?: boolean };
+                const attemptInfo = attemptedMap[key];
+                const failed = !!attemptInfo && !solved;
+                const verdict = attemptInfo?.lastVerdict;
+                return { ...p, solved, failed, verdict } as ProblemInfo;
             });
         }
         return out;
@@ -1215,88 +1235,45 @@ export default function Page(): React.ReactElement {
         <div className="min-h-screen font-mono bg-[var(--background)] text-[var(--foreground)] transition-colors">
             <div className="p-4">
                 <div className="my-6 mx-12">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <button onClick={goPrevPage} disabled={page === 1} className="p-2 rounded-md border hover:bg-gray-50 disabled:opacity-50" title="Previous page">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M12.293 15.707a1 1 0 01-1.414 0L5.172 10l5.707-5.707a1 1 0 011.414 1.414L8.414 10l3.879 3.879a1 1 0 010 1.414z" clipRule="evenodd" /></svg>
-                            </button>
-                            <h2 className="text-xl font-bold">CF Contests — {section}</h2>
-                            <button onClick={goNextPage} disabled={page === totalPages} className="p-2 rounded-md border hover:bg-gray-50 disabled:opacity-50" title="Next page">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M7.707 4.293a1 1 0 00-1.414 1.414L11.586 10l-5.293 4.293a1 1 0 001.414 1.414L14.414 10 7.707 4.293z" clipRule="evenodd" /></svg>
-                            </button>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                            <button className="px-3 py-1 rounded-md bg-blue-600 text-white text-sm hover:bg-blue-500" onClick={updateContests} disabled={loadingContests} title="Sync latest contests from Codeforces API and save to MongoDB database">
-                                Update contests
-                            </button>
-
-                            {/* New button: clear client caches and restore contests from DB */}
-                            <button className="px-3 py-1 rounded-md bg-gray-700 text-white text-sm hover:bg-gray-600" onClick={clearCacheAndRestore} disabled={loadingContests} title="Clear client cache (localStorage, IndexedDB, Cache API) and restore contest list from backend DB">
-                                Clear cache & restore
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                        {SECTION_CHIPS.map((c) => {
-                            const active = section === c;
-                            return (
-                                <button key={c} onClick={() => { void loadSection(c, true); }} className={`px-3 py-1 rounded-full text-sm font-medium transition-shadow ${active ? "bg-blue-600 text-white shadow" : "bg-white border text-gray-700 hover:shadow-sm"}`}>
-                                    {c}
-                                </button>
-                            );
-                        })}
-                    </div>
+                    <ContestHeader
+                        section={section}
+                        page={page}
+                        totalPages={totalPages}
+                        loadingContests={loadingContests}
+                        onPrevPage={goPrevPage}
+                        onNextPage={goNextPage}
+                        onUpdateContests={updateContests}
+                        onClearCache={clearCacheAndRestore}
+                    />
+                    <SectionTabs
+                        sections={SECTION_CHIPS}
+                        currentSection={section}
+                        onSelectSection={(s) => void loadSection(s, true)}
+                    />
                 </div>
 
                 <div className="mx-12">
-                    <div className="border border-gray-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900">
-                        {(loadingContests || loadingAllProblems) && (
-                            <div className="p-4">
-                                <Spinner />
-                                <div className="text-sm mt-2 text-gray-600 dark:text-gray-400">{loadingContests ? "Loading contests…" : "Loading contest problems… (background)"}</div>
-                            </div>
-                        )}
+                    <ContestList
+                        loadingContests={loadingContests}
+                        loadingAllProblems={loadingAllProblems}
+                        errorContests={errorContests}
+                        contests={pageContests}
+                        problemsMap={contestProblemsWithSolvedMap}
+                        maxProblemsOnPage={maxProblemsOnPage}
+                        perContestLoading={perContestLoading}
+                        onRefreshContest={refreshContest}
+                    />
 
-                        {errorContests && (
-                            <div className={`p-4 ${errorContests.startsWith('✅') ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                {errorContests}
-                            </div>
-                        )}
+                    <MissingProblemsWarning
+                        count={remainingMissing.length}
+                        loading={loadingAllProblems}
+                    />
 
-                        {!loadingContests && !errorContests && (
-                            <div className="min-w-[900px]">
-                                <div className="flex items-center border-b bg-gray-50 dark:bg-slate-800 dark:border-slate-700 sticky top-0 z-10">
-                                    <div className="flex items-center"><div className="p-2 w-[280px] font-semibold border-r text-gray-900 dark:text-gray-100 dark:border-slate-700">Contest</div></div>
-                                    <div className="flex items-center flex-1">{Array.from({ length: Math.max(1, maxProblemsOnPage) }).map((_, i) => (<div key={i} className="p-2 flex items-center justify-center"><div className="w-[160px] font-semibold text-center text-gray-900 dark:text-gray-100">Problem {i + 1}</div></div>))}</div>
-                                </div>
-
-                                {pageContests.map((c) => (
-                                    <ContestRow key={c.id} contest={c} problems={contestProblemsWithSolvedMap[c.id] || []} maxColumns={maxProblemsOnPage} onRefresh={() => refreshContest(c.id)} refreshing={!!perContestLoading[c.id]} />
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {remainingMissing.length > 0 && !loadingAllProblems && (
-                        <div className="mt-4 text-xs text-yellow-700">Note: {remainingMissing.length} contest(s) missing problems in cache for this section. Use per-row refresh or "Start loading (network)" to populate them.</div>
-                    )}
-
-                    {totalPages > 1 && (
-                        <div className="mt-6 dark:text-black flex justify-center">
-                            <div className="flex items-center gap-2">
-                                <button className="px-3 py-1 rounded bg-gray-100 disabled:opacity-60" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1}>Prev</button>
-                                <div className="flex items-center gap-1">
-                                    {Array.from({ length: totalPages }).slice(Math.max(0, page - 4), Math.min(totalPages, page + 3)).map((_, i) => {
-                                        const p = i + Math.max(1, page - 3);
-                                        return <button key={p} onClick={() => { setPage(p); window.scrollTo({ top: 0 }); }} className={`px-2 py-1 rounded ${p === page ? "bg-blue-600 text-white" : "bg-gray-100"}`}>{p}</button>;
-                                    })}
-                                </div>
-                                <button className="px-3 py-1 rounded bg-gray-100 disabled:opacity-60" onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages}>Next</button>
-                            </div>
-                        </div>
-                    )}
+                    <ContestPagination
+                        page={page}
+                        totalPages={totalPages}
+                        onPageChange={setPage}
+                    />
                 </div>
             </div>
         </div>

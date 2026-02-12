@@ -44,6 +44,8 @@ interface AppContextType {
     errorProblems: string | null;
     fetchProblems: () => Promise<void>;
     fetchAndMergeUserData: (handle: string) => Promise<void>;
+    refreshUserSubmissions: (handle: string) => Promise<void>;
+    refreshContestUserSubmissions: (contestId: number, handle: string) => Promise<void>;
     setHandleAndFetch: (handle: string) => Promise<void>;
     clearUser: () => void;
 
@@ -114,6 +116,7 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
     const [loadingUser, setLoadingUser] = useState(false);
 
     const fetchProblemsPromiseRef = useRef<Promise<void> | null>(null);
+    const rawSubmissionsRef = useRef<any[]>([]);
 
     // Fetch finished contests
     const fetchFinishedContests = async () => {
@@ -221,6 +224,76 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
         return all;
     };
 
+    const processSubmissions = (subs: any[]) => {
+        const newSolved = new Set<string>();
+        const attempted: Record<string, AttemptInfo> = {};
+        const dailyCounts: Record<string, number> = {};
+
+        for (const s of subs) {
+            const p = s.problem || {};
+            const contestId = Number(p.contestId);
+            const idx = normalizeIndex(p.index);
+            const key = makeKey(contestId, idx);
+            const submissionTime = s.creationTimeSeconds || 0;
+
+            if (s.verdict === "OK") {
+                newSolved.add(key);
+                const date = new Date(submissionTime * 1000).toISOString().split('T')[0];
+                dailyCounts[date] = (dailyCounts[date] || 0) + 1;
+            }
+
+            if (!attempted[key]) {
+                const isGym = contestId >= 10000;
+                attempted[key] = {
+                    key,
+                    contestId,
+                    index: idx,
+                    name: p.name,
+                    tags: p.tags || [],
+                    attempts: 0,
+                    lastVerdict: s.verdict,
+                    link: isGym
+                        ? `https://codeforces.com/gym/${contestId}/problem/${idx}`
+                        : `https://codeforces.com/contest/${contestId}/problem/${idx}`,
+                };
+            }
+            attempted[key].attempts++;
+        }
+
+        const attemptedUnsolved = Object.values(attempted).filter(
+            (a) => !newSolved.has(a.key)
+        );
+
+        // Calculate solving streak
+        const sortedDates = Object.keys(dailyCounts).filter(date => dailyCounts[date] > 0).sort().reverse();
+        let streak = 0;
+        if (sortedDates.length > 0) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            let currentDate = new Date(today);
+
+            for (let i = 0; i < sortedDates.length; i++) {
+                const solveDate = new Date(sortedDates[i]);
+                solveDate.setHours(0, 0, 0, 0);
+
+                const diffTime = currentDate.getTime() - solveDate.getTime();
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+                if (diffDays === 0 || diffDays === 1) {
+                    streak++;
+                    currentDate = solveDate;
+                } else {
+                    break;
+                }
+            }
+        }
+        setSolvingStreak(streak);
+        setDailySolveCounts(dailyCounts);
+        setUserSolvedSet(newSolved);
+        setAttemptedUnsolvedProblems(attemptedUnsolved);
+    };
+
     const fetchAndMergeUserData = async (h: string) => {
         setLoadingUser(true);
         try {
@@ -232,78 +305,90 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
             const info = (await infoRes.json())?.result?.[0];
             if (info) setUserInfo(info);
 
-            const newSolved = new Set<string>();
-            const attempted: Record<string, AttemptInfo> = {};
-            const dailyCounts: Record<string, number> = {};
-
-            for (const s of subs) {
-                const p = s.problem || {};
-                const contestId = Number(p.contestId);
-                const idx = normalizeIndex(p.index);
-                const key = makeKey(contestId, idx);
-                const submissionTime = s.creationTimeSeconds || 0;
-
-                if (s.verdict === "OK") {
-                    newSolved.add(key);
-                    const date = new Date(submissionTime * 1000).toISOString().split('T')[0];
-                    dailyCounts[date] = (dailyCounts[date] || 0) + 1;
-                }
-
-                if (!attempted[key]) {
-                    const isGym = contestId >= 10000;
-                    attempted[key] = {
-                        key,
-                        contestId,
-                        index: idx,
-                        name: p.name,
-                        tags: p.tags || [],
-                        attempts: 0,
-                        lastVerdict: s.verdict,
-                        link: isGym
-                            ? `https://codeforces.com/gym/${contestId}/problem/${idx}`
-                            : `https://codeforces.com/contest/${contestId}/problem/${idx}`,
-                    };
-                }
-                attempted[key].attempts++;
-            }
-
-            const attemptedUnsolved = Object.values(attempted).filter(
-                (a) => !newSolved.has(a.key)
-            );
-
-            // Calculate solving streak
-            const sortedDates = Object.keys(dailyCounts).filter(date => dailyCounts[date] > 0).sort().reverse();
-            let streak = 0;
-            if (sortedDates.length > 0) {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-
-                let currentDate = new Date(today);
-
-                for (let i = 0; i < sortedDates.length; i++) {
-                    const solveDate = new Date(sortedDates[i]);
-                    solveDate.setHours(0, 0, 0, 0);
-
-                    const diffTime = currentDate.getTime() - solveDate.getTime();
-                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-                    if (diffDays === 0 || diffDays === 1) {
-                        streak++;
-                        currentDate = solveDate;
-                    } else {
-                        break;
-                    }
-                }
-            }
-            setSolvingStreak(streak);
-            setDailySolveCounts(dailyCounts);
-
-            setUserSolvedSet(newSolved);
-            setAttemptedUnsolvedProblems(attemptedUnsolved);
+            rawSubmissionsRef.current = subs;
+            processSubmissions(subs);
         } catch (err) {
             console.error(err);
         } finally {
             setLoadingUser(false);
+        }
+    };
+
+    const refreshUserSubmissions = async (h: string) => {
+        if (!h) return;
+        const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+        const MAX_RETRIES = 3;
+
+        try {
+            const url = `https://codeforces.com/api/user.status?handle=${h}&from=1&count=100`;
+            let data: any = null;
+
+            // Retry logic with exponential backoff
+            for (let i = 0; i < MAX_RETRIES; i++) {
+                try {
+                    const res = await fetch(url);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    data = await res.json();
+                    if (data.status === "OK") break;
+                    throw new Error(data.comment || "API Error");
+                } catch (e) {
+                    if (i === MAX_RETRIES - 1) throw e;
+                    await sleep(500 * Math.pow(2, i));
+                }
+            }
+
+            if (data && data.status === "OK" && data.result) {
+                const newSubs = data.result;
+                const existingIds = new Set(rawSubmissionsRef.current.map((s: any) => s.id));
+                const uniqueNew = newSubs.filter((s: any) => !existingIds.has(s.id));
+
+                if (uniqueNew.length > 0) {
+                    const merged = [...uniqueNew, ...rawSubmissionsRef.current];
+                    rawSubmissionsRef.current = merged;
+                    processSubmissions(merged);
+                }
+            }
+        } catch (err) {
+            console.error("Failed to refresh user submissions", err);
+        }
+    };
+
+    const refreshContestUserSubmissions = async (contestId: number, h: string) => {
+        if (!h || !contestId) return;
+        const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+        const MAX_RETRIES = 3;
+
+        try {
+            const url = `https://codeforces.com/api/contest.status?contestId=${contestId}&handle=${h}&from=1&count=100`;
+            let data: any = null;
+
+            for (let i = 0; i < MAX_RETRIES; i++) {
+                try {
+                    const res = await fetch(url);
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    data = await res.json();
+                    if (data.status === "OK") break;
+                    throw new Error(data.comment || "API Error");
+                } catch (e) {
+                    if (i === MAX_RETRIES - 1) throw e;
+                    await sleep(500 * Math.pow(2, i));
+                }
+            }
+
+            if (data && data.status === "OK" && data.result) {
+                const newSubs = data.result;
+                const existingIds = new Set(rawSubmissionsRef.current.map((s: any) => s.id));
+                const uniqueNew = newSubs.filter((s: any) => !existingIds.has(s.id));
+
+                if (uniqueNew.length > 0) {
+                    const merged = [...uniqueNew, ...rawSubmissionsRef.current];
+                    rawSubmissionsRef.current = merged;
+                    processSubmissions(merged);
+                }
+            }
+        } catch (err) {
+            console.error(`Failed to refresh contest ${contestId} submissions`, err);
+            throw err;
         }
     };
 
@@ -376,6 +461,8 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
                 errorProblems,
                 fetchProblems,
                 fetchAndMergeUserData,
+                refreshUserSubmissions,
+                refreshContestUserSubmissions,
                 setHandleAndFetch,
                 clearUser,
                 solvedCountInProblems,
