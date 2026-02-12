@@ -15,7 +15,7 @@ export type ProblemInfo = {
 const normalizeIndex = (idx: any) => String(idx ?? "").toUpperCase().trim();
 
 // rating -> colour classes (tailwind) - improved for both light and dark modes
-const ratingToColor = (rating?: number) => {
+const ratingToColor = (rating?: number): string => {
     if (!rating) return "bg-gray-200 text-gray-900 dark:bg-slate-700 dark:text-gray-100 border border-gray-300 dark:border-slate-600";
     if (rating < 1200) return "bg-gray-200 text-gray-900 dark:bg-slate-700 dark:text-gray-100 border border-gray-300 dark:border-slate-600";
     if (rating < 1400) return "bg-green-200 text-green-900 dark:bg-green-800 dark:text-green-100 border border-green-300 dark:border-green-700";
@@ -24,41 +24,6 @@ const ratingToColor = (rating?: number) => {
     if (rating < 2200) return "bg-violet-200 text-violet-900 dark:bg-violet-800 dark:text-violet-100 border border-violet-300 dark:border-violet-700";
     if (rating < 2400) return "bg-orange-200 text-orange-900 dark:bg-orange-800 dark:text-orange-100 border border-orange-300 dark:border-orange-700";
     return "bg-red-200 text-red-900 dark:bg-red-800 dark:text-red-100 border border-red-300 dark:border-red-700";
-};
-
-// verdict -> short text
-const formatVerdict = (v?: string) => {
-    if (!v) return "Failed";
-    if (v === "WRONG_ANSWER") return "WA";
-    if (v === "TIME_LIMIT_EXCEEDED") return "TLE";
-    if (v === "COMPILATION_ERROR") return "CE";
-    if (v === "RUNTIME_ERROR") return "RTE";
-    if (v === "MEMORY_LIMIT_EXCEEDED") return "MLE";
-    if (v === "CHALLENGED") return "Hacked";
-    if (v === "SKIPPED") return "Skip";
-    if (v === "TESTING") return "Testing";
-    return "Failed";
-};
-
-// verdict -> color class
-const verdictToColor = (v?: string) => {
-    if (!v) return "bg-red-500 text-white dark:bg-red-600 dark:text-white border border-red-600 dark:border-red-500 shadow-md"; // Default fail
-
-    switch (v) {
-        case "WRONG_ANSWER":
-            return "bg-red-500 text-white dark:bg-red-600 dark:text-white border border-red-600 dark:border-red-500 shadow-md";
-        case "TIME_LIMIT_EXCEEDED":
-        case "MEMORY_LIMIT_EXCEEDED":
-            return "bg-orange-500 text-white dark:bg-orange-600 dark:text-white border border-orange-600 dark:border-orange-500 shadow-md";
-        case "COMPILATION_ERROR":
-            return "bg-slate-500 text-white dark:bg-slate-600 dark:text-white border border-slate-600 dark:border-slate-500 shadow-md";
-        case "RUNTIME_ERROR":
-            return "bg-rose-500 text-white dark:bg-rose-600 dark:text-white border border-rose-600 dark:border-rose-500 shadow-md";
-        case "TESTING":
-            return "bg-blue-500 text-white dark:bg-blue-600 dark:text-white border border-blue-600 dark:border-blue-500 shadow-md animate-pulse";
-        default:
-            return "bg-red-500 text-white dark:bg-red-600 dark:text-white border border-red-600 dark:border-red-500 shadow-md";
-    }
 };
 
 const ProblemBox: React.FC<{ p?: ProblemInfo }> = ({ p }) => {
