@@ -28,7 +28,7 @@ const ContestRow: React.FC<Props> = ({ contest, problems, maxColumns, onRefresh,
                 <ContestNameCell c={contest} onRefresh={onRefresh} refreshing={refreshing} />
             </div>
             <div className="flex items-stretch flex-1">
-                {cells}
+                {problems.length ? cells : <div className="desk-contest-missing"><p>{refreshing ? 'Fetching the problem list…' : 'Problem list not loaded'}</p><span>Use the round’s refresh button to fetch its problems.</span></div>}
             </div>
         </div>
     );

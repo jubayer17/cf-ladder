@@ -1,4 +1,5 @@
 "use client";
+import StatePanel from "@/components/StatePanel";
 import React, { useEffect, useMemo, useState } from 'react';
 import { useAppContext, makeKey } from '@/context/AppContext';
 import { cfRequest } from '@/lib/codeforces';
@@ -17,7 +18,9 @@ function colorForRating(r: number) {
 
 interface RatingChange { contestId: number; contestName: string; rank: number; oldRating: number; newRating: number }
 export default function ProblemRatings({ handle }: { handle: string | null }) {
-    const { submissions, problems, loadingUser: loading, errorUser: error } = useAppContext();
+    const { submissions, problems, loadingUser } = useAppContext();
+    const loading = loadingUser && !submissions.length;
+    const [ratingReload,setRatingReload] = useState(0);
     const [ratings, setRatings] = useState<RatingChange[]>([]);
     const [ratingError, setRatingError] = useState(false);
     const [tooltip, setTooltip] = useState<{ x: number; y: number; rating: number; count: number } | null>(null);
@@ -25,7 +28,7 @@ export default function ProblemRatings({ handle }: { handle: string | null }) {
         let cancelled = false;
         if (handle) cfRequest<RatingChange[]>('user.rating', { handle }).then(data => { if (!cancelled) { setRatings(data); setRatingError(false); } }).catch(() => { if (!cancelled) setRatingError(true); });
         return () => { cancelled = true; };
-    }, [handle]);
+    }, [handle, ratingReload]);
     const { ratingCounts, maxSolvedRating, totalSolved, totalTried, avgAttempts, maxAttempts, solvedWithOne, solvedWithOnePct, maxACs, validatedSolved, unvalidatedSolved, firstSolvedAt, lastSolvedAt } = useMemo(() => {
         const problemMap = new Map(problems.map(p => [makeKey(p.contestId,p.index),p]));
         const records = new Map<string, { attempts: number; untilAC: number | null; acs: number; rating?: number }>();
@@ -103,7 +106,7 @@ export default function ProblemRatings({ handle }: { handle: string | null }) {
     const fmtDate = (ts: number | null) => (ts ? new Date(ts).toLocaleString() : "—");
 
     return (
-        <div className="p-4 sm:p-6 bg-[var(--card)] rounded-sm border border-gray-200 dark:border-slate-700">
+        <div className="desk-panel desk-chart-panel p-4 sm:p-6">
             <div className="flex flex-col items-center mb-6">
                 <h2 className="text-2xl font-bold mb-2">
                     Solved by rating
@@ -111,27 +114,15 @@ export default function ProblemRatings({ handle }: { handle: string | null }) {
                 <p className="text-sm text-gray-600 dark:text-gray-400">Your Codeforces problem-solving journey</p>
             </div>
 
-            {ratingError && <p role="alert" className="text-sm text-amber-600 mb-4">Contest rating history is temporarily unavailable.</p>}
-            {loading && (
-                <div className="text-center py-16">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
-                    <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">Loading statistics...</div>
-                </div>
-            )}
+            {ratingError && <StatePanel tone="error" title="Contest rating history is unavailable" description="Your solve statistics are still available. Retry to load rated contest metrics." action={<button className="desk-secondary" onClick={() => setRatingReload(value => value+1)}>Retry rating history</button>} compact />}
+            {loading && <StatePanel tone="loading" title="Updating solve statistics…" compact />}
 
-            {error && (
-                <div className="text-center py-16">
-                    <div className="text-red-600 dark:text-red-400 mb-2">⚠️</div>
-                    <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
-                </div>
-            )}
-
-            {!loading && !error && (
+            {!loading && (
                 <>
                     <div className="flex justify-center mb-6">
-                        <div className="overflow-x-auto w-full max-w-full">
-                            <div className="flex justify-center">
-                                <svg width={chartBaseWidth} height={chartHeight} className="drop-">
+                        <div className="desk-chart-scroll" role="region" aria-label="Solved problem ratings chart; scroll horizontally" tabIndex={0}>
+                            <div className="min-w-max">
+                                <svg width={chartBaseWidth} height={chartHeight} role="img" aria-label="Count of accepted problems at each difficulty">
                                     <defs>
                                         <linearGradient id="chartBgLight" x1="0%" y1="0%" x2="0%" y2="100%">
                                             <stop offset="0%" stopColor="#f8fafc" />
@@ -289,7 +280,7 @@ export default function ProblemRatings({ handle }: { handle: string | null }) {
                             <div className="space-y-3">
                                 <div className="flex justify-between items-center p-3 bg-[var(--card)] rounded-lg ">
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Contests</span>
-                                    <span className="text-lg font-bold text-gray-900 dark:text-white">{contestCount}</span>
+                                    <span className="text-lg font-bold text-gray-900 dark:text-white">{ratingError ? '—' : contestCount}</span>
                                 </div>
                                 <div className="flex justify-between items-center p-3 bg-[var(--card)] rounded-lg ">
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Best rank</span>
@@ -301,7 +292,7 @@ export default function ProblemRatings({ handle }: { handle: string | null }) {
                                 </div>
                                 <div className="flex justify-between items-center p-3 bg-[var(--card)] rounded-lg ">
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Max up</span>
-                                    <span className="text-lg font-bold text-green-600 dark:text-green-400">{maxUp?.diff ? `+${maxUp.diff}` : (maxUp?.diff === 0 ? "0" : "—")}</span>
+                                    <span className="text-lg font-bold text-green-600 dark:text-green-400">{maxUp ? `${maxUp.diff > 0 ? "+" : ""}${maxUp.diff}` : "—"}</span>
                                 </div>
                                 <div className="flex justify-between items-center p-3 bg-[var(--card)] rounded-lg ">
                                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Max down</span>
@@ -329,7 +320,7 @@ export default function ProblemRatings({ handle }: { handle: string | null }) {
                         zIndex: 999
                     }}
                 >
-                    <div className="px-4 py-2 rounded-lg text-white text-sm font-medium border border-gray-700 dark:border-slate-600 whitespace-nowrap">
+                    <div className="desk-chart-tooltip px-4 py-2 text-white text-sm font-medium border border-gray-700 dark:border-slate-600 whitespace-nowrap">
                         <div className="font-bold text-base">Rating: {tooltip.rating}</div>
                         <div className="text-gray-300 dark:text-gray-300">Problems Solved: {tooltip.count}</div>
                     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import ProfileAvatar from "./ProfileAvatar";
 import { ArrowUpRight, Check, Flame, Target, Trophy } from "lucide-react";
 import { useAppContext } from "@/context/AppContext";
 import { getRatingName } from "@/utils/ratingColors";
@@ -16,23 +16,8 @@ interface PersonalInfoProps {
   isLoading?: boolean;
 }
 
-function imageUrl(value?: string): string | null {
-  if (!value?.trim()) return null;
-  try {
-    const url = new URL(value.startsWith("//") ? `https:${value}` : value);
-    if (url.protocol !== "https:" && url.protocol !== "http:") return null;
-    if (url.hostname === "userpic.codeforces.org") url.protocol = "https:";
-    return url.toString();
-  } catch { return null; }
-}
-
 export default function PersonalInfo({ profileImage, fallbackImage, handle = "", rank, currentRating, maxRating, isLoading = false }: PersonalInfoProps) {
   const { solvedCountInProblems: solved, attemptedCountInProblems: attempted, notTriedCount: untouched, solvingStreak } = useAppContext();
-  const [failedUrls, setFailedUrls] = useState<string[]>([]);
-  const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
-  const candidates = [...new Set([imageUrl(profileImage), imageUrl(fallbackImage)].filter((url): url is string => !!url))];
-  const src = candidates.find(url => !failedUrls.includes(url));
-  const initials = handle.replace(/[^a-z0-9]/gi, "").slice(0, 2).toUpperCase() || "CF";
   const total = solved + attempted + untouched;
   const percent = total ? Math.round(solved / total * 1000) / 10 : 0;
   const statistics = [
@@ -43,18 +28,13 @@ export default function PersonalInfo({ profileImage, fallbackImage, handle = "",
     { label: "SOLVING STREAK", value: `${solvingStreak}d`, icon: Flame, className: "profile-stat-streak" },
   ];
 
-  if (isLoading) return <div role="status" aria-label="Loading profile" className="desk-panel h-48 animate-pulse bg-muted" />;
+  if (isLoading && !handle) return <div role="status" aria-label="Loading profile" className="desk-panel h-48 animate-pulse bg-muted" />;
 
-  return <section className="desk-profile" aria-label={`${handle}'s Codeforces record`}>
-    <div className="profile-topline"><span className="desk-kicker">YOUR CODEFORCES RECORD</span><span className="profile-connected"><span aria-hidden="true" />CONNECTED</span></div>
+  return <section className="desk-profile" aria-label={`${handle}'s Codeforces record`} aria-busy={isLoading}>
+    <div className="profile-topline"><span className="desk-kicker">YOUR CODEFORCES RECORD</span><span className="profile-connected"><span aria-hidden="true" />{isLoading ? "SYNCING…" : "CONNECTED"}</span></div>
     <div className="profile-identity-row">
       <div className="profile-avatar-frame">
-        <div className="profile-avatar-fallback" role="img" aria-hidden={!!src && loadedUrl === src} aria-label={`${handle} profile initials`}>{initials}</div>
-        {src && (
-          // Codeforces hosts avatars remotely. Native images allow a reliable initials fallback on CDN failures.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt={`${handle} profile`} width={88} height={88} referrerPolicy="no-referrer" className={`profile-avatar-image ${loadedUrl === src ? "is-loaded" : ""}`} onLoad={() => setLoadedUrl(src)} onError={() => setFailedUrls(previous => [...previous, src])} />
-        )}
+        <ProfileAvatar key={handle} handle={handle} primary={profileImage} fallback={fallbackImage} />
         <span className="profile-avatar-check" aria-hidden="true"><Check size={14} strokeWidth={3} /></span>
       </div>
       <div className="profile-name-block"><p className="desk-kicker text-muted-foreground mb-2">THE PERSON BEHIND THE SOLVES</p><a className="profile-handle" href={`https://codeforces.com/profile/${encodeURIComponent(handle)}`} target="_blank" rel="noopener noreferrer">{handle}<ArrowUpRight size={23} /></a><span className="profile-rank">{rank || getRatingName(currentRating)}</span></div>

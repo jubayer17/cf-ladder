@@ -19,7 +19,7 @@ const NavbarWrapper: React.FC = () => {
             onHandleClear={clearUser}
             userLoading={loadingUser}
         />
-        {errorUser && <div role="alert" className="border-b border-red-200 bg-red-50 px-4 py-3 text-center text-sm text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200">{errorUser}</div>}
+        {errorUser && <div role="alert" className="desk-global-error">{errorUser}</div>}
         </>
     );
 };

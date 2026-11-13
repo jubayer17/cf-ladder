@@ -1,4 +1,4 @@
-export type UserStatus = "solved" | "failed" | "unsolved";
+export type UserStatus = "solved" | "failed" | "pending" | "unsolved";
 
 export interface Problem {
     contestId?: number;

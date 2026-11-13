@@ -125,7 +125,7 @@ const Heatmap: React.FC<HeatmapProps> = ({ dailyCounts }) => {
                         const val = e.target.value;
                         setSelectedYear(val === "last12Months" ? "last12Months" : Number(val));
                     }}
-                    className="px-3 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="desk-select"
                 >
                     <option value="last12Months">Last 12 Months</option>
                     {availableYears.map((year) => (
@@ -136,10 +136,11 @@ const Heatmap: React.FC<HeatmapProps> = ({ dailyCounts }) => {
                 </select>
             </div>
 
-            <div className="overflow-x-auto pb-4">
+            <p className="mb-4 text-xs text-muted-foreground">{datesToDisplay.reduce((sum,day) => sum+day.count,0).toLocaleString()} first-time solves in this period · Scroll horizontally to see all months.</p>
+            <div className="desk-chart-scroll pb-4" role="region" aria-label="Solving activity calendar" tabIndex={0}>
                 <div className="flex gap-4 min-w-max justify-center">
                     {monthsData.map((month, mIdx) => {
-                        const firstDate = new Date(month.dates[0].date);
+                        const firstDate = new Date(`${month.dates[0].date}T00:00:00`);
                         const startDay = firstDate.getDay();
 
                         const placeholders = Array(startDay).fill(null);
@@ -171,6 +172,7 @@ const Heatmap: React.FC<HeatmapProps> = ({ dailyCounts }) => {
                                                         key={item.date}
                                                         className={`w-3 h-3 rounded-sm ${getColorClass(item.count)}`}
                                                         title={getTooltip(item.date, item.count)}
+                                                        role="img" aria-label={getTooltip(item.date, item.count)}
                                                     />
                                                 );
                                             })}

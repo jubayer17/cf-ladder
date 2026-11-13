@@ -1,5 +1,6 @@
 "use client";
 
+import { topicTone } from "@/lib/topicPalette";
 import { useMemo } from "react";
 import { Check, SlidersHorizontal } from "lucide-react";
 
@@ -10,11 +11,6 @@ interface TagSelectorProps {
   selectedTag: string | null;
   onSelectTag: (tag: string | null) => void;
 }
-const tones = ["lilac", "mint", "blue", "coral"];
-function toneFor(tag: string) {
-  return tones[Array.from(tag).reduce((sum, letter) => sum + letter.charCodeAt(0), 0) % tones.length];
-}
-
 export default function TagSelector({ tags, tagCounts, totalCount, selectedTag, onSelectTag }: TagSelectorProps) {
   const orderedTags = useMemo(() => [...new Set(tags)].sort((a, b) => (tagCounts[b] || 0) - (tagCounts[a] || 0) || a.localeCompare(b)), [tags, tagCounts]);
   return <section id="practice-topic-filter" className="desk-tag-panel" aria-label="Filter problems by topic">
@@ -23,7 +19,7 @@ export default function TagSelector({ tags, tagCounts, totalCount, selectedTag, 
       {[null, ...orderedTags].map(tag => {
         const active = selectedTag === tag;
         const count = tag === null ? totalCount : tagCounts[tag] || 0;
-        return <button key={tag ?? "all"} type="button" className="desk-tag-chip" data-tone={tag === null ? "all" : toneFor(tag)} aria-pressed={active} onClick={() => onSelectTag(tag)}>
+        return <button key={tag ?? "all"} type="button" className="desk-tag-chip" data-tone={tag === null ? "all" : topicTone(tag)} aria-pressed={active} onClick={() => onSelectTag(tag)}>
           <span className="desk-tag-mark" aria-hidden="true">{active && <Check size={11} strokeWidth={3} />}</span>
           <span className="desk-tag-label">{tag ?? "All problems"}</span><span className="desk-tag-count">{count.toLocaleString()}</span>
         </button>;

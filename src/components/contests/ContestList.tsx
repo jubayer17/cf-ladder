@@ -1,5 +1,5 @@
 import React from "react";
-import Spinner from "@/components/contests/Spinner";
+import StatePanel from "@/components/StatePanel";
 import ContestRow from "@/components/contests/ContestRow";
 import type { ProblemInfo } from "@/components/contests/ProblemBox";
 import type { ContestInfo } from "@/components/contests/ContestNameCell";
@@ -26,31 +26,12 @@ export default function ContestList({
   onRefreshContest,
 }: ContestListProps) {
   return (
-    <div className="border border-[var(--border)] rounded-none bg-[var(--card)]">
-      {(loadingContests || loadingAllProblems) && (
-        <div className="p-4">
-          <Spinner />
-          <div className="text-sm mt-2 text-gray-600 dark:text-gray-400">
-            {loadingContests
-              ? "Loading contests…"
-              : "Loading contest problems… (background)"}
-          </div>
-        </div>
-      )}
+    <div className="desk-contest-table">
+      {(loadingContests || loadingAllProblems) && <div className="p-4"><StatePanel tone="loading" title={loadingContests ? 'Loading the contest archive…' : 'Updating contest problems…'} description={contests.length ? 'The previous results stay available while the archive refreshes.' : 'Fetching finished rounds from Codeforces.'} compact /></div>}
 
-      {errorContests && (
-        <div
-          className={`p-4 ${
-            errorContests.startsWith("✅")
-              ? "text-green-600 dark:text-green-400"
-              : "text-red-600 dark:text-red-400"
-          }`}
-        >
-          {errorContests}
-        </div>
-      )}
+      {errorContests && <div className="p-4"><StatePanel tone="error" title="Contest data could not be updated" description={errorContests} compact /></div>}
 
-      {!loadingContests && !errorContests && (
+      {!!contests.length && (
         <div className="min-w-[900px]">
           <div className="flex items-center border-b bg-[var(--muted)] dark:border-slate-700 sticky top-0 z-10">
             <div className="flex items-center">

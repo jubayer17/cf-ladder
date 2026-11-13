@@ -5,7 +5,8 @@ import RatingSelector from "./RatingSelector";
 import TagSelector from "./TagSelector";
 import ProblemList from "./ProblemList";
 import { useAppContext } from "@/context/AppContext";
-import { Problem, UserStatus } from "../types";
+import { problemState } from "@/lib/progress";
+import { Problem } from "../types";
 
 interface LadderProps {
   problems: Problem[];
@@ -19,7 +20,7 @@ const Ladder: React.FC<LadderProps> = ({
   const [selectedRating, setSelectedRating] = useState<number>(800);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const { attemptedUnsolvedProblems } = useAppContext();
-  const userStatusMap = useMemo(() => Object.fromEntries(attemptedUnsolvedProblems.map(p => [p.key, "failed" as UserStatus])), [attemptedUnsolvedProblems]);
+  const userStatusMap = useMemo(() => Object.fromEntries(attemptedUnsolvedProblems.map(p => [p.key, problemState(false, true, p.lastVerdict)])), [attemptedUnsolvedProblems]);
   const [showTags, setShowTags] = useState<boolean>(false);
 
 

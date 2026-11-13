@@ -47,8 +47,9 @@ const ContestNameCell: React.FC<{
                 <button
                     onClick={onRefresh}
                     disabled={!!refreshing}
-                    title="Refresh this contest (fetch problems from network)"
-                    className="p-1 rounded-none hover:bg-gray-100 dark:hover:bg-slate-700 disabled:opacity-60 transition-colors"
+                    title="Refresh contest problems and your progress"
+                    aria-label={`Refresh ${c.name}`}
+                    className="desk-icon-button"
                 >
                     {refreshing ? (
                         <svg className="w-5 h-5 animate-spin text-gray-600 dark:text-gray-400" viewBox="0 0 24 24" fill="none">

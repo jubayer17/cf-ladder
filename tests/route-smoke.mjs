@@ -21,3 +21,10 @@ test('legacy routes redirect to the maintained routes', async () => {
 test('bug report rejects foreign origins before any email action', async () => {
   const response = await get('/api/send-bug',{method:'POST', headers:{origin:'https://invalid.example'}}); assert.equal(response.status,403);
 });
+test('photo proxy rejects private hosts, redirects and unexpected parameters', async () => {
+  for (const query of ['src=http://127.0.0.1/a.jpg','src=https://example.com/a.jpg','src=https://userpic.codeforces.org/redirect','src=https://userpic.codeforces.org/no-avatar.jpg&extra=1','src=https://userpic.codeforces.org/no-avatar.jpg&src=https://userpic.codeforces.org/no-title.jpg']) {
+    const response = await get(`/api/avatar?${query}`);
+    assert.equal(response.status,400,query);
+    assert.equal((await response.json()).error,'Invalid photo URL');
+  }
+});

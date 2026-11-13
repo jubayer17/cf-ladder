@@ -1,11 +1,13 @@
 "use client";
+import StatePanel from "@/components/StatePanel";
 import React, { useMemo, useState } from 'react';
 import { useAppContext, makeKey } from '@/context/AppContext';
 const MAX_TAGS = 30;
 export default function TagsDonut({ handle: propHandle }: { handle?: string | null }) {
-    const { problems, submissions, loadingUser: loading, errorUser: error } = useAppContext();
+    const { problems, submissions, loadingUser } = useAppContext();
     const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
-    const { tagCounts, otherCount } = useMemo(() => {
+    const loading = loadingUser && !submissions.length;
+    const { tagCounts, otherCount, uniqueSolvedCount } = useMemo(() => {
         const problemMap = new Map(problems.map(p => [makeKey(p.contestId,p.index),p]));
         const seen = new Set<string>(); const counts: Record<string, number> = {}; let other = 0;
         for (const s of submissions) {
@@ -16,7 +18,7 @@ export default function TagsDonut({ handle: propHandle }: { handle?: string | nu
             if (!tags.length) other++;
             for (const tag of tags) counts[tag] = (counts[tag] || 0) + 1;
         }
-        return { tagCounts: counts, otherCount: other };
+        return { tagCounts: counts, otherCount: other, uniqueSolvedCount: seen.size };
     }, [problems, submissions]);
     // entries sorted by count desc; include 'Other' as last if present
     const entries = useMemo(() => {
@@ -91,33 +93,21 @@ export default function TagsDonut({ handle: propHandle }: { handle?: string | nu
     }
 
     return (
-        <div className="w-full p-4 sm:p-6 bg-[var(--card)] rounded-sm border border-gray-200 dark:border-slate-700">
+        <div className="desk-panel desk-chart-panel p-4 sm:p-6">
             <div className="flex flex-col items-center mb-6">
                 <h3 className="text-2xl font-bold mb-2">
                     Solved by topic
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Top {MAX_TAGS} most solved problem categories</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Top {MAX_TAGS} categories. A problem can contribute to multiple tags.</p>
             </div>
 
-            {loading && (
-                <div className="text-center py-16">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
-                    <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">Loading tags...</p>
-                </div>
-            )}
+            {loading && <StatePanel tone="loading" title="Updating topic statistics…" compact />}
 
-            {error && (
-                <div className="text-center py-16">
-                    <div className="text-red-600 dark:text-red-400 mb-2">⚠️</div>
-                    <p className="text-sm text-red-600 dark:text-red-400">Error: {error}</p>
-                </div>
-            )}
-
-            {!loading && !error && entries.length > 0 && (
+            {!loading && entries.length > 0 && (
                 <div className="flex flex-col lg:flex-row gap-8 items-start">
                     {/* Donut Chart - Left side */}
                     <div className="w-full lg:w-1/2 flex items-center justify-center">
-                        <svg width={size} height={size} viewBox={`${-size / 2} ${-size / 2} ${size} ${size}`} className="drop-w-full max-w-[420px]" role="img" aria-label="tags donut">
+                        <svg width={size} height={size} viewBox={`${-size / 2} ${-size / 2} ${size} ${size}`} className="w-full h-auto max-w-[420px]" role="img" aria-label="tags donut">
                             <circle cx={0} cy={0} r={outerR} fill="#f5f7fb" className="dark:fill-slate-800/50" />
                             {arcs.map((a, i) => {
                                 const path = makePath(outerR, innerR, a.start, a.end);
@@ -133,13 +123,9 @@ export default function TagsDonut({ handle: propHandle }: { handle?: string | nu
                                     />
                                 );
                             })}
-                            <circle cx={0} cy={0} r={innerR} fill="#ffffff" className="dark:fill-slate-900" />
-                            {/* <text x={0} y={-6} textAnchor="middle" fontSize={18} fill="#0f172a" className="dark:fill-gray-200" fontWeight={700}>
-                                {total}
-                            </text> */}
-                            {/* <text x={0} y={16} textAnchor="middle" fontSize={11} fill="#6b7280" className="dark:fill-gray-400">
-                                validated solves
-                            </text> */}
+                            <circle cx={0} cy={0} r={innerR} fill="var(--card)" />
+                            <text x={0} y={-2} textAnchor="middle" fontSize={30} fill="var(--foreground)" fontWeight={800}>{uniqueSolvedCount.toLocaleString()}</text>
+                            <text x={0} y={22} textAnchor="middle" fontSize={12} fill="var(--muted-foreground)">unique solves</text>
                         </svg>
                     </div>
 
@@ -157,7 +143,7 @@ export default function TagsDonut({ handle: propHandle }: { handle?: string | nu
                                 return (
                                     <div
                                         key={e.tag}
-                                        className="flex items-center gap-3 p-3 rounded-lg  hover:shadow-md transition-all duration-200 border border-gray-200 dark:border-slate-600 group cursor-pointer"
+                                        className="desk-tag-legend-row flex items-center gap-3 p-3 border border-[var(--border)]"
                                         onMouseMove={(ev) => setTip({ x: ev.clientX, y: ev.clientY, text: `${e.tag}: ${e.count} (${pct}%)` })}
                                         onMouseLeave={() => setTip(null)}
                                     >
@@ -175,13 +161,13 @@ export default function TagsDonut({ handle: propHandle }: { handle?: string | nu
                 </div>
             )}
 
-            {!loading && !error && entries.length === 0 && (
+            {!loading && entries.length === 0 && (
                 <div className="text-center py-16 text-gray-600 dark:text-gray-400">No tags data available.</div>
             )}
 
             {tip && (
                 <div style={{ position: "fixed", left: tip.x + 12, top: tip.y + 12, pointerEvents: "none", zIndex: 999 }}>
-                    <div className="px-3 py-2 rounded-lg text-white text-sm font-medium border border-gray-700 dark:border-slate-600 whitespace-nowrap">
+                    <div className="desk-chart-tooltip px-3 py-2 text-white text-sm font-medium border border-gray-700 dark:border-slate-600 whitespace-nowrap">
                         {tip.text}
                     </div>
                 </div>

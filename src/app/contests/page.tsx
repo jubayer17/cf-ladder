@@ -2,6 +2,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cfRequest } from '@/lib/codeforces';
 import { makeKey, useAppContext } from '@/context/AppContext';
+import ProfileSummary from "@/components/ProfileSummary";
+import StatePanel from "@/components/StatePanel";
+import ProgressLegend from "@/components/ProgressLegend";
+import ConnectHandleAction from "@/components/ConnectHandleAction";
 import ContestList from '@/components/contests/ContestList';
 import type { ContestInfo } from '@/components/contests/ContestNameCell';
 import type { ProblemInfo } from '@/components/contests/ProblemBox';
@@ -62,14 +66,17 @@ export default function ContestsPage() {
     } catch (err) { setError(err instanceof Error ? err.message : 'Unable to refresh contest'); }
     finally { pending.current.delete(id); setRefreshing(old => ({ ...old, [id]: false })); }
   }
-  return <main className="mx-auto max-w-7xl px-4 sm:px-8 py-8 space-y-6">
+  return <main className="desk-page space-y-6">
     <div><p className="text-xs uppercase tracking-widest font-semibold text-muted-foreground">THE ARCHIVE / BY ROUND</p><h1 className="mt-2 text-3xl font-bold tracking-tight">Contest archive</h1><p className="mt-2 text-muted-foreground">Explore past rounds, track your solves, and revisit unfinished challenges.</p></div>
-    <div className="flex flex-wrap gap-2" role="group" aria-label="Contest category">{sections.map(s => <button key={s} aria-pressed={section === s} onClick={() => { setSection(s); setPage(1); }} className={`px-4 py-2  text-sm border font-medium ${section === s ? 'bg-foreground text-background border-foreground' : 'bg-[var(--card)] hover:bg-muted'}`}>{s}</button>)}</div>
-    <div className="flex flex-wrap items-center gap-3"><input aria-label="Search contests" type="search" placeholder="Search contest name or ID…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="flex-1 min-w-0 border  px-4 py-3 bg-[var(--card)]" /><button disabled={loading} onClick={() => void load()} className="border  px-4 py-3 text-sm bg-[var(--card)] disabled:opacity-50">Refresh archive</button></div>
-    {error && <div role="alert" className=" border border-red-300 p-4 text-red-600">{error}</div>}
+    <ProfileSummary />
+    <div className="flex flex-wrap gap-2" role="group" aria-label="Contest category">{sections.map(s => <button key={s} aria-pressed={section === s} onClick={() => { setSection(s); setPage(1); }} className="desk-category-button">{s}</button>)}</div>
+    <div className="flex flex-wrap items-center gap-3"><input aria-label="Search contests" type="search" placeholder="Search contest name or ID…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} className="flex-1 min-w-0 border  px-4 py-3 bg-[var(--card)]" /><button disabled={loading} onClick={() => void load()} className="desk-secondary">Refresh archive</button></div>
+    {error && <StatePanel tone="error" title="The last contest update failed" description={error} action={<button className="desk-secondary" onClick={() => void load()} disabled={loading}>Try again</button>} compact />}
+    {!handle && <StatePanel tone="info" title="Track your contest progress" description="Connect a Codeforces handle to see solved, attempted, and judging states across past rounds." action={<ConnectHandleAction />} compact />}
+    <ProgressLegend />
     <p className="text-sm text-muted-foreground">{filtered.length.toLocaleString()} contests · Swipe horizontally to explore problems. Use a round’s refresh button to fetch its latest problem list.</p>
-    <div className="overflow-x-auto "><ContestList loadingContests={loading} loadingAllProblems={false} errorContests={null} contests={visible} problemsMap={problemsMap} maxProblemsOnPage={Math.max(1,...visible.map(c => problemsMap[c.id]?.length || 0))} perContestLoading={refreshing} onRefreshContest={id => void refreshContest(id)} /></div>
-    {!loading && !visible.length && <p className="text-center py-10 text-muted-foreground">No contests match your filters.</p>}
-    <nav aria-label="Contest pagination" className="flex items-center justify-center gap-4"><button disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)} className="border px-4 py-2  disabled:opacity-40">Previous</button><span className="text-sm">{currentPage} / {totalPages}</span><button disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)} className="border px-4 py-2  disabled:opacity-40">Next</button></nav>
+    <div className="desk-contest-scroll" role="region" aria-label="Contest problem table" tabIndex={0}><ContestList loadingContests={loading} loadingAllProblems={false} errorContests={null} contests={visible} problemsMap={problemsMap} maxProblemsOnPage={Math.max(1,...visible.map(c => problemsMap[c.id]?.length || 0))} perContestLoading={refreshing} onRefreshContest={id => void refreshContest(id)} /></div>
+    {!loading && !error && !visible.length && <StatePanel tone="empty" title="No contests match these filters" description="Try another division or search term." action={<button className="desk-secondary" onClick={() => {setSearch('');setSection('All');setPage(1);}}>Reset filters</button>} />}
+    <nav aria-label="Contest pagination" className="desk-pagination"><button disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)} className="border px-4 py-2  disabled:opacity-40">Previous</button><span className="text-sm">{currentPage} / {totalPages}</span><button disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)} className="border px-4 py-2  disabled:opacity-40">Next</button></nav>
   </main>;
 }

@@ -2,6 +2,8 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { storage } from "@/lib/codeforces";
+import StatePanel from "./StatePanel";
+import ProgressLegend from "./ProgressLegend";
 import ProblemCard from "./ProblemCard";
 import ProblemSortControls from "./ProblemSortControls";
 import { Problem, UserStatus } from "../types";
@@ -130,7 +132,8 @@ const ProblemList: React.FC<ProblemListProps> = ({
         onHideSolvedChange={handleHideSolvedChange}
       />
 
-      {filteredSorted.length === 0 && <div className="border border-dashed py-16 text-center font-sans"><p className="font-semibold">No matching problems</p><p className="mt-2 text-sm text-muted-foreground">Try another rating, search term, or turn off Hide solved.</p></div>}
+      <ProgressLegend />
+      {filteredSorted.length === 0 && <StatePanel tone="empty" title="No matching problems" description="Try another rating or topic, clear your search, or turn off Hide solved." action={(search || hideSolved) && <button className="desk-secondary" onClick={() => { setSearch(''); handleHideSolvedChange(false); }}>Clear search & visibility filters</button>} />}
       {paged.map((p, idx) => {
         const key = `${p.contestId}-${p.index}`;
         const status: UserStatus =

@@ -1,46 +1,24 @@
-"use client";
-
-import React, { useMemo } from 'react';
-import { useAppContext } from '@/context/AppContext';
+'use client';
+import { useMemo } from 'react';
+import { useAppContext, makeKey } from '@/context/AppContext';
 import TopicGrid from '@/components/topics/TopicGrid';
-
-const TopicsPage = () => {
-    const { problems, errorProblems, fetchProblems, loadingProblems } = useAppContext();
-
-    const topics = useMemo(() => {
-        const topicCounts: Record<string, number> = {};
-
-        problems.forEach(problem => {
-            if (problem.tags) {
-                problem.tags.forEach(tag => {
-                    topicCounts[tag] = (topicCounts[tag] || 0) + 1;
-                });
-            }
-        });
-
-        return Object.entries(topicCounts)
-            .map(([topic, count]) => ({ topic, count }))
-            .sort((a, b) => b.count - a.count);
-    }, [problems]);
-
-    if (errorProblems) return <div role="alert" className="mx-auto max-w-lg p-8 text-center"><p>{errorProblems}</p><button className="mt-4 rounded-lg bg-blue-600 text-white px-4 py-2" onClick={() => void fetchProblems()}>Try again</button></div>;
-
-    if (loadingProblems) {
-        return (
-            <div className="flex justify-center items-center h-[50vh]">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            </div>
-        );
+import ProfileSummary from "@/components/ProfileSummary";
+import StatePanel from '@/components/StatePanel';
+export default function TopicsPage() {
+  const { problems, errorProblems, fetchProblems, loadingProblems, handle, userSolvedSet, attemptedUnsolvedProblems } = useAppContext();
+  const topics = useMemo(() => {
+    const attempts = new Set(attemptedUnsolvedProblems.map(p => p.key));
+    const map = new Map<string,{ topic: string; count: number; solved: number; attempted: number }>();
+    for (const p of problems) for (const tag of p.tags || []) {
+      const item = map.get(tag) || { topic: tag, count: 0, solved: 0, attempted: 0 };
+      const key = makeKey(p.contestId,p.index);
+      item.count++; if (userSolvedSet.has(key)) item.solved++; else if (attempts.has(key)) item.attempted++;
+      map.set(tag,item);
     }
-
-    return (
-        <div className="container mx-auto py-8 px-4 max-w-7xl">
-            <div className="mb-8 border-b-2 border-foreground pb-6"><p className="desk-kicker">THE ARCHIVE / BY SUBJECT</p><h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mt-3">Find your weak spot.</h1><p className="mt-3 text-sm text-muted-foreground">{topics.length} topics. {problems.length.toLocaleString()} problems. Pick a subject and put in the work.</p></div>
-
-            {/* Grid */}
-            <TopicGrid topics={topics} />
-        </div>
-    );
-};
-
-export default TopicsPage;
+    return [...map.values()].sort((a,b) => b.count-a.count);
+  },[problems,userSolvedSet,attemptedUnsolvedProblems]);
+  return <main className="desk-page space-y-7"><div className="desk-page-heading"><div><p className="desk-kicker">THE ARCHIVE / BY SUBJECT</p><h1>Find your weak spot.</h1><p>{topics.length} topics · {problems.length.toLocaleString()} problems. {handle ? 'Your progress is shown for each topic.' : 'Choose a subject and start practicing.'}</p></div></div>
+    <ProfileSummary />
+    {errorProblems ? <StatePanel tone="error" title="The topic library could not load" description={errorProblems} action={<button className="desk-action" onClick={() => void fetchProblems()}>Try again →</button>} /> : loadingProblems && !problems.length ? <StatePanel tone="loading" title="Opening the topic library…" description="Organizing Codeforces problems by subject." /> : topics.length ? <TopicGrid topics={topics} connected={!!handle} /> : <StatePanel tone="empty" title="No topics available yet" description="Refresh the library to try fetching the latest problem data." action={<button className="desk-secondary" onClick={() => void fetchProblems()}>Refresh library</button>} />}
+  </main>;
+}

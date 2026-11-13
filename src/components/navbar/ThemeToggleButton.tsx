@@ -40,7 +40,8 @@ const ThemeToggleButton: React.FC = () => {
     <button
       onClick={toggleTheme}
       aria-label="Toggle theme"
-      title="Toggle theme"
+      title={`Switch to ${theme === "light" ? "dark" : "light"} mode`}
+      aria-pressed={theme === "dark"}
       className={`
         desk-theme-toggle flex items-center justify-center shrink-0 w-9 h-9 rounded-full
         border dark:border-gray-600

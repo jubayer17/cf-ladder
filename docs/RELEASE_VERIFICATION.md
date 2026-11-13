@@ -6,9 +6,9 @@ This release updates the practice UI, profile/avatar fallback, clap baseline, Co
 
 - Frontend ESLint: passed without warnings.
 - Frontend TypeScript and production build: passed.
-- Frontend regression tests: 8 passed.
+- Frontend regression tests: 12 passed.
 - Backend TypeScript build and HTTP regression tests: 8 passed.
-- Frontend HTTP smoke tests against the production build: 4 passed.
+- Frontend HTTP smoke tests against the production build: 5 passed.
 - Full npm advisory scans: zero known vulnerabilities in both repositories at verification time.
 - Git whitespace checks: passed.
 
@@ -45,3 +45,13 @@ MongoDB integration, SMTP delivery and internet-scale load are not established b
 Upstream quota spacing and report throttling are per process. Multiple server replicas need shared quota coordination and a distributed abuse limiter. Administrative contest sync can exceed short serverless execution windows; run it with sufficient worker time. The browser's core practice flows do not depend on that sync.
 
 Both repositories use Node.js 22.x. No secrets are included in this release; the tracked frontend production environment file contains only the public API base URL.
+
+## Situation-aware UI follow-up
+
+Topic labels now share seven stable identity colors across ladder cards, filters, contest cards and unfinished cards. Accepted problems are green, attempted problems amber, submissions awaiting judging blue, and untouched problems neutral. Accepted solves take precedence over later failed attempts. Unit tests cover these rules and the distinct colors of the five reported tags.
+
+The unfinished list now has search, verdict filtering, sorting and pagination. Topics show personal progress. Connected profile summaries appear on contest, topic, unfinished and stats pages. Loading, disconnected, empty, refresh-failure and success states use shared feedback components with relevant actions. Charts scroll within their panels on narrow screens; the topic donut center counts unique solves rather than summed tag occurrences.
+
+Profile photos use an allowlisted same-origin proxy with a six-second upstream timeout, bounded image size, signature validation, bounded cache/concurrency and CDN caching. Only Codeforces photo paths are accepted; HTTP smoke tests reject private hosts and unexpected query parameters. Original photo candidates and initials remain fallbacks. During local verification, the public Codeforces image host returned HTTP 503 for both `_ultron` photos; the profile identity, ratings and statistics remained visible without a broken-image indicator.
+
+Browser verification used the real `_ultron` profile, confirmed a green accepted `2226A` card, distinct rendered topic colors in both themes, unfinished filtering and its reset action, profile summaries, contest archive, topic details and stats. Mobile stats and contest pages had no document-level horizontal overflow.

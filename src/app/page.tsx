@@ -1,5 +1,6 @@
 "use client";
 import Link from 'next/link';
+import StatePanel from '@/components/StatePanel';
 import Ladder from '@/components/Ladder';
 import PersonalInfo from '@/components/PersonalInfo';
 import Unsolved from '@/components/Unsolved';
@@ -8,9 +9,9 @@ export default function Home() {
   const { problems, userInfo, userSolvedSet, loadingProblems, loadingUser, errorProblems, fetchProblems, solvedCountInProblems, solvingStreak, attemptedUnsolvedProblems } = useAppContext();
   const metrics = [
     { label: 'In the archive', value: problems.length.toLocaleString(), unit: 'problems' },
-    { label: 'Your progress', value: solvedCountInProblems.toLocaleString(), unit: 'ladder solves' },
-    { label: 'Current streak', value: solvingStreak, unit: 'days in a row' },
-    { label: 'Unfinished business', value: attemptedUnsolvedProblems.length.toLocaleString(), unit: 'to revisit' },
+    { label: 'Your progress', value: userInfo ? solvedCountInProblems.toLocaleString() : '—', unit: 'ladder solves' },
+    { label: 'Current streak', value: userInfo ? solvingStreak : '—', unit: 'days in a row' },
+    { label: 'Unfinished business', value: userInfo ? attemptedUnsolvedProblems.length.toLocaleString() : '—', unit: 'to revisit' },
   ];
   return <main className="desk mx-auto max-w-7xl px-4 sm:px-8 py-7 sm:py-10 space-y-7">
     <section className="desk-intro flex flex-col sm:flex-row sm:items-end justify-between gap-5 pb-7 border-b-2 border-foreground">
@@ -22,7 +23,7 @@ export default function Home() {
     {userInfo && <PersonalInfo key={userInfo.handle} profileImage={userInfo.titlePhoto} fallbackImage={userInfo.avatar} rank={userInfo.rank} handle={userInfo.handle} currentRating={userInfo.rating} maxRating={userInfo.maxRating} isLoading={loadingUser} />}
     <section id="practice" className="scroll-mt-40 space-y-5">
       <div className="desk-section-title"><h2><span className="desk-section-number">01</span> THE PROBLEM SET</h2><span className="hidden sm:block text-xs font-mono text-muted-foreground">Choose your difficulty below ↓</span></div>
-      {loadingProblems && !problems.length ? <div role="status" aria-label="Loading problems" className="space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-20 animate-pulse border bg-muted" />)}<p className="text-sm text-muted-foreground">Opening the archive…</p></div> : errorProblems ? <div role="alert" className="desk-panel p-6"><p>{errorProblems}</p><button onClick={() => void fetchProblems()} className="desk-action mt-4">Try again →</button></div> : <Ladder problems={problems} userSolvedSet={userSolvedSet} />}
+      {loadingProblems && !problems.length ? <div role="status" aria-label="Loading problems" className="space-y-3">{[1,2,3,4].map(i => <div key={i} className="h-20 animate-pulse border bg-muted" />)}<p className="text-sm text-muted-foreground">Opening the archive…</p></div> : errorProblems ? <StatePanel tone="error" title="The problem library could not load" description={errorProblems} action={<button onClick={() => void fetchProblems()} className="desk-action">Try again →</button>} /> : <Ladder problems={problems} userSolvedSet={userSolvedSet} />}
     </section>
     {userInfo && <section className="space-y-5"><div className="desk-section-title"><h2><span className="desk-section-number">02</span> UNFINISHED BUSINESS</h2><Link href="/unsolved" className="text-xs underline underline-offset-4">View all →</Link></div><Unsolved /></section>}
   </main>;

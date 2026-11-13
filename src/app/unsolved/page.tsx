@@ -1,120 +1,29 @@
-"use client";
-
-import React from "react";
-import { useAppContext } from "../../context/AppContext";
-import { RefreshCw } from "lucide-react";
-
+'use client';
+import Link from 'next/link';
+import { useMemo, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
+import { useAppContext } from '@/context/AppContext';
+import { problemState, verdictLabel } from '@/lib/progress';
+import ProfileSummary from "@/components/ProfileSummary";
+import StatePanel from '@/components/StatePanel';
+import ConnectHandleAction from '@/components/ConnectHandleAction';
+import RetryCard from '@/components/RetryCard';
+import ProgressLegend from '@/components/ProgressLegend';
 export default function UnsolvedPage() {
-    const { attemptedUnsolvedProblems, fetchAndMergeUserData, handle, loadingUser } = useAppContext();
-
-    if (loadingUser) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-300">
-                Loading unsolved problems...
-            </div>
-        );
-    }
-
-    if (!handle) return <main className="mx-auto max-w-7xl p-8"><p className="desk-kicker">YOUR RECORD / UNFINISHED</p><h1 className="text-3xl font-bold mt-3">Unfinished problems</h1><p className="mt-4 text-muted-foreground">Connect your Codeforces handle above to see problems you have attempted.</p></main>;
-
-    const validProblems = attemptedUnsolvedProblems.filter(p => p.link);
-
-    const handleRefresh = async () => {
-        if (handle) {
-            await fetchAndMergeUserData(handle);
-        }
-    };
-
-    if (validProblems.length === 0) {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300">
-                <h1 className="text-2xl font-semibold mb-3">🎉 All problems solved!</h1>
-                <p className="text-sm">No unsolved problems found. Keep grinding 🔥</p>
-                <button
-                    onClick={handleRefresh}
-                    disabled={loadingUser || !handle}
-                    className="mt-4 flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                >
-                    <RefreshCw className={`w-4 h-4 ${loadingUser ? "animate-spin" : ""}`} />
-                    Refresh List
-                </button>
-            </div>
-        );
-    }
-
-    return (
-        <div className="min-h-screen font-mono w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition">
-            <div className="max-w-7xl mx-auto px-6 py-10">
-                <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-2xl font-bold">All Unsolved Problems</h1>
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={handleRefresh}
-                            disabled={loadingUser || !handle}
-                            className="flex items-center gap-2 px-3 py-2 text-sm rounded-md bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                            title="Refresh unsolved problems"
-                        >
-                            <RefreshCw className={`w-4 h-4 ${loadingUser ? "animate-spin" : ""}`} />
-                            <span className="hidden sm:inline">Refresh</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                    {validProblems.map((p, idx) => (
-                        <a
-                            key={p.key}
-                            href={p.link}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex flex-col md:flex-row items-start md:items-center gap-3 p-4 rounded-lg shadow hover:-translate-y-0.5 hover:shadow-lg transition bg-white dark:bg-gray-800"
-                        >
-                            {/* Number + Name + Index + Contest */}
-                            <div className="flex items-center gap-2 min-w-[50px] font-mono font-semibold text-sm">
-                                <span>{idx + 1}.</span>
-                                <span>{p.name || "Unknown Problem"}</span>
-                                <span className="px-2 py-0.5 border rounded text-xs border-blue-700">
-                                    {p.index}
-                                </span>
-                                <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                                    Contest: {p.contestId}
-                                </span>
-                            </div>
-
-                            {/* Tags */}
-                            <div className="flex flex-wrap gap-2 max-w-[500px]">
-                                {p.tags?.map((t, tidx) => (
-                                    <span
-                                        key={t + tidx}
-                                        className="px-2 py-0.5 rounded-full text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300"
-                                    >
-                                        {t}
-                                    </span>
-                                ))}
-                            </div>
-
-                            {/* Verdict and attempts */}
-                            <div className="ml-auto flex items-center gap-4 text-sm font-semibold">
-                                <span
-                                    className={
-                                        p.lastVerdict === "OK"
-                                            ? "text-green-400"
-                                            : "text-red-400"
-                                    }
-                                >
-                                    {p.lastVerdict || "N/A"}
-                                </span>
-
-                                <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
-                                    <span>Tried:</span>
-                                    <span>{p.attempts ?? 0}</span>
-                                    <span>Times</span>
-                                </div>
-                            </div>
-                        </a>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
+  const { attemptedUnsolvedProblems, fetchAndMergeUserData, handle, loadingUser, errorUser } = useAppContext();
+  const [search,setSearch] = useState(''), [filter,setFilter] = useState('all'), [sort,setSort] = useState('recent'), [page,setPage] = useState(1);
+  const filtered = useMemo(() => attemptedUnsolvedProblems.filter(p => `${p.contestId}${p.index} ${p.name || ''} ${verdictLabel(p.lastVerdict)}`.toLowerCase().includes(search.toLowerCase().trim()) && (filter === 'all' || problemState(false,true,p.lastVerdict) === filter)).sort((a,b) => sort === 'attempts' ? b.attempts - a.attempts : (b.lastTime || 0) - (a.lastTime || 0)),[attemptedUnsolvedProblems,search,filter,sort]);
+  const pages = Math.max(1,Math.ceil(filtered.length / 20)), currentPage = Math.min(page,pages);
+  return <main className="desk-page space-y-6"><div className="desk-page-heading"><div><p className="desk-kicker">YOUR RECORD / UNFINISHED</p><h1>Finish what you started.</h1><p>Revisit your attempts, see the last verdict, and turn them into accepted solves.</p></div>{handle && <button className="desk-secondary" disabled={loadingUser} onClick={() => void fetchAndMergeUserData(handle)}><RefreshCw size={15} className={loadingUser ? 'animate-spin' : ''} />{loadingUser ? 'Syncing…' : 'Refresh record'}</button>}</div>
+    <ProfileSummary />
+    {!handle ? <StatePanel tone={loadingUser ? 'loading' : 'info'} title={loadingUser ? 'Loading your Codeforces record…' : 'Connect your handle to see your attempts'} description={loadingUser ? 'Fetching your submission history.' : 'Your unfinished list includes problems you tried but have not yet solved.'} action={!loadingUser && <ConnectHandleAction />} /> : <>
+      {errorUser && <StatePanel tone="error" title="Your last refresh did not finish" description="Showing the previous synced record. Use Refresh record to try again." compact />}
+      {!attemptedUnsolvedProblems.length ? <StatePanel tone="success" title="No unfinished attempts" description="No attempted problems are waiting for an accepted solve. This is a good time to choose a new challenge." action={<Link className="desk-action" href="/">Open the practice ladder →</Link>} /> : <>
+        <div className="desk-toolbar"><label className="flex-1 min-w-0"><span className="sr-only">Search unfinished problems</span><input aria-label="Search unfinished problems" type="search" value={search} onChange={e => {setSearch(e.target.value);setPage(1);}} placeholder="Search name, ID, or verdict…" /></label><select aria-label="Attempt state" value={filter} onChange={e => {setFilter(e.target.value);setPage(1);}}><option value="all">All unfinished</option><option value="failed">Attempted</option><option value="pending">Awaiting judging</option></select><select aria-label="Sort unfinished problems" value={sort} onChange={e => {setSort(e.target.value);setPage(1);}}><option value="recent">Most recent</option><option value="attempts">Most attempts</option></select></div>
+        <div className="flex flex-wrap gap-3 justify-between"><ProgressLegend /><p className="text-xs text-muted-foreground font-mono" role="status">{filtered.length} problems</p></div>
+        {filtered.length ? <div className="grid gap-3 lg:grid-cols-2">{filtered.slice((currentPage-1)*20,currentPage*20).map((attempt,index) => <RetryCard key={attempt.key} attempt={attempt} number={(currentPage-1)*20+index+1} />)}</div> : <StatePanel tone="empty" title="No attempts match these filters" description="Try another name, ID, or state." action={<button className="desk-secondary" onClick={() => {setSearch('');setFilter('all');setPage(1);}}>Reset filters</button>} />}
+        {pages > 1 && <nav className="desk-pagination" aria-label="Unfinished problem pagination"><button disabled={currentPage===1} onClick={() => setPage(currentPage-1)}>Previous</button><span>{currentPage} / {pages}</span><button disabled={currentPage===pages} onClick={() => setPage(currentPage+1)}>Next</button></nav>}
+      </>}
+    </>}
+  </main>;
 }
