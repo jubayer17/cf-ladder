@@ -14,13 +14,14 @@ const ProblemSortControls: React.FC<ProblemSortControlsProps> = ({
     onHideSolvedChange,
 }) => {
     return (
-        <div className="flex justify-between items-center bg-[var(--card-bg)] p-3 rounded-md shadow-sm">
+        <div className="desk-sort flex flex-wrap gap-3 justify-between items-center border-y py-3 text-xs font-mono">
             <div className="flex items-center gap-4">
-                <h2 className="font-semibold text-[var(--foreground)]">Sort Problems</h2>
+                <label htmlFor="problem-sort" className="font-semibold">ORDER</label>
                 <select
+                    id="problem-sort"
                     value={sortOption}
                     onChange={(e) => onSortChange(e.target.value as "acceptance" | "new" | "old")}
-                    className="px-3 py-1 rounded border dark:bg-gray-800 dark:text-white dark:border-gray-700"
+                    className="px-3 py-2 border dark:bg-gray-800 dark:text-white dark:border-gray-700"
                 >
                     <option value="new">Newest First</option>
                     <option value="old">Oldest First</option>

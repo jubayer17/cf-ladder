@@ -1,484 +1,135 @@
 "use client";
-
-import React, {
-    createContext,
-    useContext,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-    ReactNode,
-} from "react";
-import { Problem } from "@/types";
-
-interface CFUserInfo {
-    handle: string;
-    rating: number;
-    maxRating: number;
-    rank: string;
-    titlePhoto: string;
-}
-
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState, ReactNode } from 'react';
+import { Problem } from '@/types';
+import { cfRequest, CFUserInfo, Submission, makeKey, localDate, currentStreak, mergeSubmissions, storage } from '@/lib/codeforces';
+export { makeKey } from '@/lib/codeforces';
 export interface AttemptInfo {
-    key: string;
-    contestId: number;
-    index: string;
-    name?: string;
-    tags?: string[];
-    attempts: number;
-    lastVerdict?: string;
-    lastTime?: number;
-    link: string;
+  key: string; contestId: number; index: string; name?: string; tags?: string[];
+  attempts: number; lastVerdict?: string; lastTime?: number; link: string;
 }
-
 interface AppContextType {
-    problems: Problem[];
-    tagCounts: Record<string, number>;
-    unsolvedProblems: Problem[];
-    attemptedUnsolvedProblems: AttemptInfo[];
-    handle: string | null;
-    userInfo: CFUserInfo | null;
-    userSolvedSet: Set<string>;
-    loadingProblems: boolean;
-    loadingUser: boolean;
-    errorProblems: string | null;
-    fetchProblems: () => Promise<void>;
-    fetchAndMergeUserData: (handle: string) => Promise<void>;
-    refreshUserSubmissions: (handle: string) => Promise<void>;
-    refreshContestUserSubmissions: (contestId: number, handle: string) => Promise<void>;
-    setHandleAndFetch: (handle: string) => Promise<void>;
-    clearUser: () => void;
-
-    solvedCountInProblems: number;
-    attemptedCountInProblems: number;
-    notTriedCount: number;
-    solvingStreak: number;
-    dailySolveCounts: Record<string, number>;
+  submissions: Submission[]; problems: Problem[]; tagCounts: Record<string, number>; unsolvedProblems: Problem[];
+  attemptedUnsolvedProblems: AttemptInfo[]; handle: string | null; userInfo: CFUserInfo | null;
+  userSolvedSet: Set<string>; loadingProblems: boolean; loadingUser: boolean;
+  errorProblems: string | null; errorUser: string | null;
+  fetchProblems: () => Promise<void>; fetchAndMergeUserData: (handle: string) => Promise<void>;
+  refreshUserSubmissions: (handle: string) => Promise<void>;
+  refreshContestUserSubmissions: (contestId: number, handle: string) => Promise<void>;
+  setHandleAndFetch: (handle: string) => Promise<void>; clearUser: () => void;
+  solvedCountInProblems: number; attemptedCountInProblems: number; notTriedCount: number;
+  solvingStreak: number; dailySolveCounts: Record<string, number>;
 }
-
-// Contest definition
-interface ContestInfo {
-    id: number;
-    name: string;
-    phase: string;
-    type: string;
-    durationSeconds?: number;
-    startTimeSeconds?: number;
-}
-
 const AppContext = createContext<AppContextType | null>(null);
-
-// API Endpoints
-const CF_PROBLEMSET = "https://codeforces.com/api/problemset.problems";
-const CF_CONTESTS_LIST = "https://codeforces.com/api/contest.list";
-
-// Helpers
-const normalizeIndex = (idx: any) => String(idx ?? "").toUpperCase().trim();
-export const makeKey = (contestId: number | string | undefined, index: any) =>
-    `${String(contestId ?? "")}-${normalizeIndex(index)}`;
-
-const flattenProblemsResponse = (data: any) => {
-    if (!data) return [];
-    if (data.result && Array.isArray(data.result.problems))
-        return data.result.problems;
-    return [];
-};
-
-const computeTagCounts = (list: Problem[]) => {
-    const map: Record<string, number> = {};
-    for (const p of list) for (const t of p.tags || []) map[t] = (map[t] || 0) + 1;
-    return map;
-};
-
-export const AppContextProvider = ({ children }: { children: ReactNode }) => {
-    // State
-    const [contests, setContests] = useState<ContestInfo[]>([]);
-    const [loadingContests, setLoadingContests] = useState(false);
-    const [errorContests, setErrorContests] = useState<string | null>(null);
-
-    const [problems, setProblems] = useState<Problem[]>([]);
-    const [tagCounts, setTagCounts] = useState<Record<string, number>>({});
-    const [loadingProblems, setLoadingProblems] = useState(false);
-    const [errorProblems, setErrorProblems] = useState<string | null>(null);
-
-    const [handle, setHandle] = useState<string | null>(
-        typeof window !== "undefined"
-            ? localStorage.getItem("cf_user_handle_v1")
-            : null
-    );
-
-    const [userInfo, setUserInfo] = useState<CFUserInfo | null>(null);
-    const [userSolvedSet, setUserSolvedSet] = useState<Set<string>>(new Set());
-    const [attemptedUnsolvedProblems, setAttemptedUnsolvedProblems] =
-        useState<AttemptInfo[]>([]);
-    const [solvingStreak, setSolvingStreak] = useState(0);
-    const [dailySolveCounts, setDailySolveCounts] = useState<Record<string, number>>({});
-    const [loadingUser, setLoadingUser] = useState(false);
-
-    const fetchProblemsPromiseRef = useRef<Promise<void> | null>(null);
-    const rawSubmissionsRef = useRef<any[]>([]);
-
-    // Fetch finished contests
-    const fetchFinishedContests = async () => {
-        setLoadingContests(true);
-        try {
-            const stored = localStorage.getItem("cf_finished_contests");
-            if (stored) {
-                setContests(JSON.parse(stored));
-                setLoadingContests(false);
-                return;
-            }
-
-            const res = await fetch(CF_CONTESTS_LIST);
-            const data = await res.json();
-            if (data.status !== "OK") throw new Error("Failed to fetch contests");
-
-            const finished: ContestInfo[] = (data.result as ContestInfo[])
-                .filter((c) => c.phase === "FINISHED")
-                .map((c) => ({
-                    id: c.id,
-                    name: c.name,
-                    phase: c.phase,
-                    type: c.type,
-                    durationSeconds: c.durationSeconds,
-                    startTimeSeconds: c.startTimeSeconds,
-                }));
-
-            setContests(finished);
-            localStorage.setItem("cf_finished_contests", JSON.stringify(finished));
-        } catch (err) {
-            console.error(err);
-            setErrorContests("Failed to fetch finished contests");
-        } finally {
-            setLoadingContests(false);
+export function AppContextProvider({ children }: { children: ReactNode }) {
+  const [problems, setProblems] = useState<Problem[]>([]);
+  const [loadingProblems, setLoadingProblems] = useState(true);
+  const [errorProblems, setErrorProblems] = useState<string | null>(null);
+  const [handle, setHandle] = useState<string | null>(null);
+  const [userInfo, setUserInfo] = useState<CFUserInfo | null>(null);
+  const [today, setToday] = useState(() => localDate(new Date()));
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [loadingUser, setLoadingUser] = useState(false);
+  const [errorUser, setErrorUser] = useState<string | null>(null);
+  const requestVersion = useRef(0);
+  const activeHandle = useRef<string | null>(null);
+  const problemRequest = useRef<Promise<void> | null>(null);
+  async function fetchProblems() {
+    if (problemRequest.current) return problemRequest.current;
+    problemRequest.current = (async () => {
+      setLoadingProblems(true); setErrorProblems(null);
+      let cached: Problem[] = [];
+      try {
+        const stored = JSON.parse(storage.get('cf_all_problems_v2') || 'null');
+        if (Array.isArray(stored?.problems) && stored.problems.every((p: Problem) => p && typeof p.name === 'string' && Array.isArray(p.tags))) {
+          cached = stored.problems; setProblems(cached);
+          if (Number.isFinite(stored.ts) && Date.now() >= stored.ts && Date.now() - stored.ts < 3600000) return;
         }
-    };
-
-    useEffect(() => {
-        if (contests.length === 0) fetchFinishedContests();
-    }, []);
-
-    // Fetch problem set
-    const fetchProblems = async () => {
-        if (problems.length > 0) return;
-        if (fetchProblemsPromiseRef.current) return fetchProblemsPromiseRef.current;
-
-        const p = (async () => {
-            setLoadingProblems(true);
-            try {
-                const stored = localStorage.getItem("cf_all_problems");
-                if (stored) {
-                    const parsed = JSON.parse(stored);
-                    setProblems(parsed);
-                    setTagCounts(computeTagCounts(parsed));
-                    return;
-                }
-
-                const res = await fetch(CF_PROBLEMSET);
-                const data = await res.json();
-                const allProblems = flattenProblemsResponse(data);
-
-                // attach global solvedCount
-                const statsMap: Record<string, number> = {};
-                if (data.result.problemStatistics) {
-                    for (const stat of data.result.problemStatistics) {
-                        statsMap[makeKey(stat.contestId, stat.index)] = stat.solvedCount;
-                    }
-                }
-
-                const mergedProblems = allProblems.map((p: Problem) => ({
-                    ...p,
-                    solvedCount: statsMap[makeKey(p.contestId, p.index)] ?? 0,
-                }));
-
-                setProblems(mergedProblems);
-                setTagCounts(computeTagCounts(mergedProblems));
-                localStorage.setItem("cf_all_problems", JSON.stringify(mergedProblems));
-            } catch (err) {
-                console.error(err);
-                setErrorProblems("Failed to fetch problems");
-            } finally {
-                setLoadingProblems(false);
-            }
-        })();
-
-        fetchProblemsPromiseRef.current = p;
-        await p;
-        fetchProblemsPromiseRef.current = null;
-    };
-
-    // User data & submissions
-    const fetchAllSubmissions = async (h: string) => {
-        let from = 1,
-            all: any[] = [];
-        const count = 1000;
-        while (true) {
-            const url = `https://codeforces.com/api/user.status?handle=${h}&from=${from}&count=${count}`;
-            const res = await fetch(url);
-            const data = await res.json();
-            if (!data.result?.length) break;
-            all = all.concat(data.result);
-            if (data.result.length < count) break;
-            from += count;
-        }
-        return all;
-    };
-
-    const processSubmissions = (subs: any[]) => {
-        const newSolved = new Set<string>();
-        const attempted: Record<string, AttemptInfo> = {};
-        const dailyCounts: Record<string, number> = {};
-
-        for (const s of subs) {
-            const p = s.problem || {};
-            const contestId = Number(p.contestId);
-            const idx = normalizeIndex(p.index);
-            const key = makeKey(contestId, idx);
-            const submissionTime = s.creationTimeSeconds || 0;
-
-            if (s.verdict === "OK") {
-                newSolved.add(key);
-                const date = new Date(submissionTime * 1000).toISOString().split('T')[0];
-                dailyCounts[date] = (dailyCounts[date] || 0) + 1;
-            }
-
-            if (!attempted[key]) {
-                const isGym = contestId >= 10000;
-                attempted[key] = {
-                    key,
-                    contestId,
-                    index: idx,
-                    name: p.name,
-                    tags: p.tags || [],
-                    attempts: 0,
-                    lastVerdict: s.verdict,
-                    link: isGym
-                        ? `https://codeforces.com/gym/${contestId}/problem/${idx}`
-                        : `https://codeforces.com/contest/${contestId}/problem/${idx}`,
-                };
-            }
-            attempted[key].attempts++;
-        }
-
-        const attemptedUnsolved = Object.values(attempted).filter(
-            (a) => !newSolved.has(a.key)
-        );
-
-        // Calculate solving streak
-        const sortedDates = Object.keys(dailyCounts).filter(date => dailyCounts[date] > 0).sort().reverse();
-        let streak = 0;
-        if (sortedDates.length > 0) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-
-            let currentDate = new Date(today);
-
-            for (let i = 0; i < sortedDates.length; i++) {
-                const solveDate = new Date(sortedDates[i]);
-                solveDate.setHours(0, 0, 0, 0);
-
-                const diffTime = currentDate.getTime() - solveDate.getTime();
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-                if (diffDays === 0 || diffDays === 1) {
-                    streak++;
-                    currentDate = solveDate;
-                } else {
-                    break;
-                }
-            }
-        }
-        setSolvingStreak(streak);
-        setDailySolveCounts(dailyCounts);
-        setUserSolvedSet(newSolved);
-        setAttemptedUnsolvedProblems(attemptedUnsolved);
-    };
-
-    const fetchAndMergeUserData = async (h: string) => {
-        setLoadingUser(true);
-        try {
-            const [subs, infoRes] = await Promise.all([
-                fetchAllSubmissions(h),
-                fetch(`https://codeforces.com/api/user.info?handles=${h}`),
-            ]);
-
-            const info = (await infoRes.json())?.result?.[0];
-            if (info) setUserInfo(info);
-
-            rawSubmissionsRef.current = subs;
-            processSubmissions(subs);
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoadingUser(false);
-        }
-    };
-
-    const refreshUserSubmissions = async (h: string) => {
-        if (!h) return;
-        const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-        const MAX_RETRIES = 3;
-
-        try {
-            const url = `https://codeforces.com/api/user.status?handle=${h}&from=1&count=100`;
-            let data: any = null;
-
-            // Retry logic with exponential backoff
-            for (let i = 0; i < MAX_RETRIES; i++) {
-                try {
-                    const res = await fetch(url);
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    data = await res.json();
-                    if (data.status === "OK") break;
-                    throw new Error(data.comment || "API Error");
-                } catch (e) {
-                    if (i === MAX_RETRIES - 1) throw e;
-                    await sleep(500 * Math.pow(2, i));
-                }
-            }
-
-            if (data && data.status === "OK" && data.result) {
-                const newSubs = data.result;
-                const existingIds = new Set(rawSubmissionsRef.current.map((s: any) => s.id));
-                const uniqueNew = newSubs.filter((s: any) => !existingIds.has(s.id));
-
-                if (uniqueNew.length > 0) {
-                    const merged = [...uniqueNew, ...rawSubmissionsRef.current];
-                    rawSubmissionsRef.current = merged;
-                    processSubmissions(merged);
-                }
-            }
-        } catch (err) {
-            console.error("Failed to refresh user submissions", err);
-        }
-    };
-
-    const refreshContestUserSubmissions = async (contestId: number, h: string) => {
-        if (!h || !contestId) return;
-        const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-        const MAX_RETRIES = 3;
-
-        try {
-            const url = `https://codeforces.com/api/contest.status?contestId=${contestId}&handle=${h}&from=1&count=100`;
-            let data: any = null;
-
-            for (let i = 0; i < MAX_RETRIES; i++) {
-                try {
-                    const res = await fetch(url);
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    data = await res.json();
-                    if (data.status === "OK") break;
-                    throw new Error(data.comment || "API Error");
-                } catch (e) {
-                    if (i === MAX_RETRIES - 1) throw e;
-                    await sleep(500 * Math.pow(2, i));
-                }
-            }
-
-            if (data && data.status === "OK" && data.result) {
-                const newSubs = data.result;
-                const existingIds = new Set(rawSubmissionsRef.current.map((s: any) => s.id));
-                const uniqueNew = newSubs.filter((s: any) => !existingIds.has(s.id));
-
-                if (uniqueNew.length > 0) {
-                    const merged = [...uniqueNew, ...rawSubmissionsRef.current];
-                    rawSubmissionsRef.current = merged;
-                    processSubmissions(merged);
-                }
-            }
-        } catch (err) {
-            console.error(`Failed to refresh contest ${contestId} submissions`, err);
-            throw err;
-        }
-    };
-
-    const setHandleAndFetch = async (h: string) => {
-        setHandle(h);
-        localStorage.setItem("cf_user_handle_v1", h);
-        if (problems.length === 0) await fetchProblems();
-        await fetchAndMergeUserData(h);
-    };
-
-    const clearUser = () => {
-        setHandle(null);
-        setUserInfo(null);
-        setUserSolvedSet(new Set());
-        setAttemptedUnsolvedProblems([]);
-        setSolvingStreak(0);
-        setDailySolveCounts({});
-        localStorage.removeItem("cf_user_handle_v1");
-    };
-
-    // Computed statistics
-    const problemKeySet = useMemo(
-        () => new Set(problems.map((p) => makeKey(p.contestId, p.index))),
-        [problems]
-    );
-
-    const solvedCountInProblems = useMemo(() => {
-        let c = 0;
-        for (const k of problemKeySet) if (userSolvedSet.has(k)) c++;
-        return c;
-    }, [problemKeySet, userSolvedSet]);
-
-    const attemptedCountInProblems = useMemo(() => {
-        let c = 0;
-        for (const a of attemptedUnsolvedProblems) if (problemKeySet.has(a.key)) c++;
-        return c;
-    }, [attemptedUnsolvedProblems, problemKeySet]);
-
-    const notTriedCount = useMemo(
-        () => Math.max(0, problemKeySet.size - solvedCountInProblems - attemptedCountInProblems),
-        [problemKeySet, solvedCountInProblems, attemptedCountInProblems]
-    );
-
-    // Side effects
-    useEffect(() => {
-        if (problems.length === 0) fetchProblems();
-    }, []);
-
-    useEffect(() => {
-        if (!handle) return;
-        if (
-            problems.length > 0 &&
-            (userSolvedSet.size === 0 || attemptedUnsolvedProblems.length === 0)
-        )
-            setHandleAndFetch(handle);
-    }, [handle, problems]);
-
-    return (
-        <AppContext.Provider
-            value={{
-                problems,
-                tagCounts,
-                unsolvedProblems: [],
-                attemptedUnsolvedProblems,
-                handle,
-                userInfo,
-                userSolvedSet,
-                loadingProblems,
-                loadingUser,
-                errorProblems,
-                fetchProblems,
-                fetchAndMergeUserData,
-                refreshUserSubmissions,
-                refreshContestUserSubmissions,
-                setHandleAndFetch,
-                clearUser,
-                solvedCountInProblems,
-                attemptedCountInProblems,
-                notTriedCount,
-                solvingStreak,
-                dailySolveCounts,
-            }}
-        >
-            {children}
-        </AppContext.Provider>
-    );
-};
-
-export const useAppContext = () => {
-    const ctx = useContext(AppContext);
-    if (!ctx) throw new Error("useAppContext must be used within AppContextProvider");
-    return ctx;
-};
+      } catch { storage.remove('cf_all_problems_v2'); }
+      try {
+        const result = await cfRequest<{ problems: Problem[]; problemStatistics: { contestId: number; index: string; solvedCount: number }[] }>('problemset.problems');
+        if (!Array.isArray(result.problems)) throw new Error('Invalid problem data');
+        const stats = new Map(result.problemStatistics.map(s => [makeKey(s.contestId,s.index), s.solvedCount]));
+        const list = result.problems.map(p => ({ ...p, tags: p.tags || [], solvedCount: stats.get(makeKey(p.contestId,p.index)) || 0 }));
+        setProblems(list); storage.set('cf_all_problems_v2', JSON.stringify({ ts: Date.now(), problems: list }));
+      } catch (error) { if (!cached.length) setErrorProblems(error instanceof Error ? error.message : 'Unable to load problems'); }
+      finally { setLoadingProblems(false); }
+    })().finally(() => { setLoadingProblems(false); problemRequest.current = null; });
+    return problemRequest.current;
+  }
+  async function fetchAndMergeUserData(raw: string) {
+    const h = raw.trim();
+    if (!/^[A-Za-z0-9_.-]{3,24}$/.test(h)) { setErrorUser('Enter a valid Codeforces handle (3–24 characters).'); return; }
+    const version = ++requestVersion.current;
+    setLoadingUser(true); setErrorUser(null);
+    try {
+      const infos = await cfRequest<CFUserInfo[]>('user.info', { handles: h });
+      if (!infos[0]) throw new Error('Handle not found');
+      let all: Submission[] = [];
+      for (let from = 1; ; from += 10000) {
+        if (version !== requestVersion.current) return;
+        const batch = await cfRequest<Submission[]>('user.status', { handle: h, from, count: 10000 });
+        all = all.concat(batch);
+        if (batch.length < 10000) break;
+      }
+      if (version !== requestVersion.current) return;
+      activeHandle.current = infos[0].handle;
+      setHandle(infos[0].handle); setUserInfo(infos[0]); setSubmissions(mergeSubmissions([], all));
+      storage.set('cf_user_handle_v1', infos[0].handle);
+    } catch (error) { if (version === requestVersion.current) setErrorUser(error instanceof Error ? error.message : 'Unable to load profile'); }
+    finally { if (version === requestVersion.current) setLoadingUser(false); }
+  }
+  async function refresh(h: string, contestId?: number) {
+    if (activeHandle.current?.toLowerCase() !== h.toLowerCase()) return;
+    const version = requestVersion.current;
+    try {
+      const incoming = await cfRequest<Submission[]>(contestId ? 'contest.status' : 'user.status', { handle: h, from: 1, count: 10000, ...(contestId ? { contestId } : {}) });
+      if (version === requestVersion.current) { setSubmissions(old => mergeSubmissions(old, incoming)); setErrorUser(null); }
+    } catch (error) { if (version === requestVersion.current) setErrorUser(error instanceof Error ? error.message : 'Unable to refresh'); throw error; }
+  }
+  function clearUser() {
+    ++requestVersion.current; activeHandle.current = null;
+    setHandle(null); setUserInfo(null); setSubmissions([]); setLoadingUser(false); setErrorUser(null);
+    storage.remove('cf_user_handle_v1');
+  }
+  useEffect(() => {
+    void fetchProblems();
+    const saved = storage.get('cf_user_handle_v1');
+    // Hydrate the saved profile through a validated asynchronous request.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (saved) void fetchAndMergeUserData(saved);
+    // Initial requests run once; request versions discard outdated profile responses.
+  }, []);
+  useEffect(() => {
+    const id = setInterval(() => setToday(localDate(new Date())),60000);
+    return () => clearInterval(id);
+  }, []);
+  const computed = useMemo(() => {
+    const userSolvedSet = new Set<string>();
+    const attempted = new Map<string, AttemptInfo>();
+    const firstSolve = new Map<string, number>();
+    for (const s of submissions) {
+      const p = s.problem; const id = p.contestId ?? s.contestId;
+      if (!id || !p.index) continue;
+      const key = makeKey(id,p.index);
+      if (s.verdict === 'OK') { userSolvedSet.add(key); firstSolve.set(key, Math.min(firstSolve.get(key) ?? Infinity, s.creationTimeSeconds)); }
+      const a = attempted.get(key);
+      if (a) a.attempts++;
+      else attempted.set(key, { key, contestId: id, index: p.index, name: p.name, tags: p.tags, attempts: 1, lastVerdict: s.verdict, lastTime: s.creationTimeSeconds, link: `https://codeforces.com/${id >= 100000 ? 'gym' : 'contest'}/${id}/problem/${p.index}` });
+    }
+    const dailySolveCounts: Record<string, number> = {};
+    for (const ts of firstSolve.values()) { const date = localDate(new Date(ts * 1000)); dailySolveCounts[date] = (dailySolveCounts[date] || 0) + 1; }
+    const attemptedUnsolvedProblems = [...attempted.values()].filter(a => !userSolvedSet.has(a.key));
+    const problemKeys = new Set(problems.map(p => makeKey(p.contestId,p.index)));
+    const solvedCountInProblems = [...problemKeys].filter(k => userSolvedSet.has(k)).length;
+    const attemptedCountInProblems = attemptedUnsolvedProblems.filter(a => problemKeys.has(a.key)).length;
+    const tagCounts: Record<string, number> = {};
+    for (const p of problems) for (const tag of p.tags) tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+    return { userSolvedSet, dailySolveCounts, attemptedUnsolvedProblems, solvedCountInProblems, attemptedCountInProblems, tagCounts, notTriedCount: Math.max(0, problemKeys.size - solvedCountInProblems - attemptedCountInProblems), solvingStreak: currentStreak(dailySolveCounts, new Date(`${today}T12:00:00`)), unsolvedProblems: problems.filter(p => !userSolvedSet.has(makeKey(p.contestId,p.index))) };
+  }, [problems, submissions, today]);
+  return <AppContext.Provider value={{ submissions, problems, handle, userInfo, loadingProblems, loadingUser, errorProblems, errorUser, fetchProblems, fetchAndMergeUserData, setHandleAndFetch: fetchAndMergeUserData, clearUser, refreshUserSubmissions: h => refresh(h), refreshContestUserSubmissions: (id,h) => refresh(h,id), ...computed }}>{children}</AppContext.Provider>;
+}
+export function useAppContext() {
+  const context = useContext(AppContext);
+  if (!context) throw new Error('useAppContext must be used within AppContextProvider');
+  return context;
+}

@@ -5,7 +5,7 @@ import { useAppContext } from '@/context/AppContext';
 import TopicGrid from '@/components/topics/TopicGrid';
 
 const TopicsPage = () => {
-    const { problems, loadingProblems } = useAppContext();
+    const { problems, errorProblems, fetchProblems, loadingProblems } = useAppContext();
 
     const topics = useMemo(() => {
         const topicCounts: Record<string, number> = {};
@@ -23,6 +23,8 @@ const TopicsPage = () => {
             .sort((a, b) => b.count - a.count);
     }, [problems]);
 
+    if (errorProblems) return <div role="alert" className="mx-auto max-w-lg p-8 text-center"><p>{errorProblems}</p><button className="mt-4 rounded-lg bg-blue-600 text-white px-4 py-2" onClick={() => void fetchProblems()}>Try again</button></div>;
+
     if (loadingProblems) {
         return (
             <div className="flex justify-center items-center h-[50vh]">
@@ -33,28 +35,7 @@ const TopicsPage = () => {
 
     return (
         <div className="container mx-auto py-8 px-4 max-w-7xl">
-            {/* Header */}
-            <div className="mb-10 text-center">
-                <div className="inline-block mb-4 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold font-mono">
-                    Browse by Category
-                </div>
-                <h1 className="font-mono text-4xl md:text-5xl font-extrabold mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-                    Problem Topics
-                </h1>
-                <p className="font-mono text-muted-foreground text-lg max-w-2xl mx-auto">
-                    Explore coding problems organized by topics. Click on any topic to view all related problems and start solving.
-                </p>
-                <div className="mt-6 flex justify-center gap-6 text-sm font-mono">
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-                        <span className="text-muted-foreground">{topics.length} Topics Available</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                        <span className="text-muted-foreground">{problems.length} Total Problems</span>
-                    </div>
-                </div>
-            </div>
+            <div className="mb-8 border-b-2 border-foreground pb-6"><p className="desk-kicker">THE ARCHIVE / BY SUBJECT</p><h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight mt-3">Find your weak spot.</h1><p className="mt-3 text-sm text-muted-foreground">{topics.length} topics. {problems.length.toLocaleString()} problems. Pick a subject and put in the work.</p></div>
 
             {/* Grid */}
             <TopicGrid topics={topics} />

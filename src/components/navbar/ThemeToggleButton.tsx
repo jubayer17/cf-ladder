@@ -8,6 +8,8 @@ const ThemeToggleButton: React.FC = () => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // Hydrate browser theme preferences after server rendering.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     try {
       const savedTheme = localStorage.getItem("theme");
@@ -40,7 +42,7 @@ const ThemeToggleButton: React.FC = () => {
       aria-label="Toggle theme"
       title="Toggle theme"
       className={`
-        flex items-center justify-center w-9 h-9 rounded-full
+        desk-theme-toggle flex items-center justify-center shrink-0 w-9 h-9 rounded-full
         border dark:border-gray-600
         bg-white dark:bg-gray-800
         shadow-sm hover:scale-105 transition-transform

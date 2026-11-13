@@ -5,37 +5,41 @@ import { Buffer } from "buffer";
 
 export const runtime = "nodejs";
 
+const MAX_BODY = 6 * 1024 * 1024;
+const attempts = new Map<string, number>();
 async function buildAttachmentsFromForm(formData: FormData) {
-    const attachments: {
-        filename: string;
-        content: Buffer;
-        contentType?: string;
-    }[] = [];
-
-    for (const [, value] of formData.entries()) {
-
-        if (value instanceof File) {
-            const file = value as File;
-            // read file into buffer
-            const ab = await file.arrayBuffer();
-            const buf = Buffer.from(ab);
-            attachments.push({
-                filename: file.name || `attachment-${Date.now()}`,
-                content: buf,
-                contentType: file.type || undefined,
-            });
-        }
+    const files = [...formData.values()].filter((value): value is File => value instanceof File && value.size > 0);
+    if (files.length > 3 || files.reduce((sum, f) => sum + f.size, 0) > 5 * 1024 * 1024 || files.some(f => !['image/png','image/jpeg','image/webp','image/gif','text/plain'].includes(f.type))) throw new Error('INVALID_FILES');
+    return Promise.all(files.map(async f => ({ filename: f.name.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0,100), content: Buffer.from(await f.arrayBuffer()), contentType: f.type })));
+}
+async function boundedForm(req: Request) {
+    if (!req.body) throw new Error('INVALID_BODY');
+    const reader = req.body.getReader();
+    const chunks: Uint8Array[] = []; let size = 0;
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > MAX_BODY) { await reader.cancel(); throw new Error('TOO_LARGE'); }
+        chunks.push(value);
     }
-
-    return attachments;
+    return new Response(Buffer.concat(chunks), { headers: { 'Content-Type': req.headers.get('content-type') || '' } }).formData();
 }
 
 export async function POST(req: Request) {
     try {
 
-        const formData = await req.formData();
+        const origin = req.headers.get('origin');
+        if (origin && origin !== new URL(req.url).origin) return NextResponse.json({ error: 'Invalid origin' }, { status: 403 });
+        const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+        const now = Date.now();
+        for (const [key, expires] of attempts) if (expires <= now) attempts.delete(key);
+        if (attempts.has(ip) || attempts.size > 10000) return NextResponse.json({ error: 'Please wait a minute before sending another report.' }, { status: 429, headers: { 'Retry-After': '60' } });
+        attempts.set(ip, now + 60000);
+        const formData = await boundedForm(req);
         const text = String(formData.get("text") ?? "").trim();
 
+        if (!text || text.length > 5000) return NextResponse.json({ error: 'Please provide a report between 1 and 5000 characters.' }, { status: 400 });
         // Build attachments
         const attachments = await buildAttachmentsFromForm(formData);
 
@@ -46,8 +50,8 @@ export async function POST(req: Request) {
         if (!smtpUser || !smtpPass) {
             console.error("Missing GMAIL_USER or GMAIL_APP_PASSWORD in env");
             return NextResponse.json(
-                { error: "Missing mail credentials on server (GMAIL_USER / GMAIL_APP_PASSWORD)." },
-                { status: 500 }
+                { error: "Bug reporting is temporarily unavailable." },
+                { status: 503 }
             );
         }
 
@@ -57,16 +61,8 @@ export async function POST(req: Request) {
             port: 465,
             secure: true,
             auth: { user: smtpUser, pass: smtpPass },
+            connectionTimeout: 10000, greetingTimeout: 10000, socketTimeout: 15000,
         });
-
-        // verify to show early errors
-        try {
-            await transporter.verify();
-            console.log("Nodemailer verify OK");
-        } catch (vErr) {
-            console.error("SMTP verify failed:", vErr);
-            return NextResponse.json({ error: "SMTP verify failed", details: String(vErr) }, { status: 500 });
-        }
 
         // Build email HTML
         const escapeHtml = (unsafe = "") =>
@@ -105,10 +101,11 @@ export async function POST(req: Request) {
             return NextResponse.json({ success: true });
         } catch (sendErr) {
             console.error("sendMail error:", sendErr);
-            return NextResponse.json({ error: "Failed to send email", details: String(sendErr) }, { status: 500 });
+            return NextResponse.json({ error: "Failed to send report. Please try again later." }, { status: 500 });
         }
     } catch (err) {
-        console.error("API error:", err);
-        return NextResponse.json({ error: "Failed to process request", details: String(err) }, { status: 500 });
+        const message = err instanceof Error ? err.message : '';
+        if (message === 'TOO_LARGE') return NextResponse.json({ error: 'Attachments are too large.' }, { status: 413 });
+        return NextResponse.json({ error: 'Invalid report. Use up to 3 images or text files totaling at most 5 MB.' }, { status: 400 });
     }
 }

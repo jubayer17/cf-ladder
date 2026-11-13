@@ -1,5 +1,6 @@
 "use client";
 
+import { storage } from "@/lib/codeforces";
 import React, { useEffect, useState } from "react";
 import { FaHandSparkles, FaHands } from "react-icons/fa"; // fixed import ✅
 
@@ -20,19 +21,13 @@ export default function ApplauseButton({
     const [count, setCount] = useState(initial);
     const [bump, setBump] = useState(false);
 
-    // load from localStorage
     useEffect(() => {
-        const saved = localStorage.getItem(storageKey);
-        if (saved === "true") {
-            setApplauded(true);
-            setCount((c) => c + 1);
-        }
-    }, []);
-
-    // persist applause
-    useEffect(() => {
-        localStorage.setItem(storageKey, applauded ? "true" : "false");
-    }, [applauded]);
+        const saved = storage.get(storageKey) === 'true';
+        // Hydrate the optional browser preference once after server rendering.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setApplauded(saved);
+        setCount(initial + (saved ? 1 : 0));
+    }, [initial, storageKey]);
 
     // bump animation
     useEffect(() => {
@@ -42,13 +37,10 @@ export default function ApplauseButton({
     }, [bump]);
 
     const toggleApplause = () => {
-        setApplauded((prev) => {
-            const newState = !prev;
-            setCount((c) => (newState ? c + 1 : Math.max(initial, c - 1)));
-            setBump(true);
-            onChange?.(newState ? count + 1 : Math.max(initial, count - 1), newState);
-            return newState;
-        });
+        const next = !applauded;
+        const nextCount = next ? count + 1 : Math.max(initial,count - 1);
+        setApplauded(next); setCount(nextCount); setBump(true);
+        storage.set(storageKey,String(next)); onChange?.(nextCount,next);
     };
 
     return (

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { storage } from "@/lib/codeforces";
 import ProblemCard from "./ProblemCard";
 import ProblemSortControls from "./ProblemSortControls";
 import { Problem, UserStatus } from "../types";
@@ -16,61 +17,34 @@ interface ProblemListProps {
   onStatusChange?: (problemKey: string, status: UserStatus) => void;
 }
 
-const CACHE_KEY = "cf_problems_cache_v1";
-const CACHE_TTL = 1000 * 60 * 60;
-
 const ProblemList: React.FC<ProblemListProps> = ({
   problems,
   userStatusMap,
   userSolvedSet = new Set(),
   perPage = 30,
-  selectedTag = null,
-  onStatusChange,
 }) => {
   const [page, setPage] = useState<number>(1);
-  const [pageInput, setPageInput] = useState<string>("1");
+
   const [sortOption, setSortOption] = useState<"acceptance" | "new" | "old">("new");
-  const [localProblems, setLocalProblems] = useState<Problem[]>([]);
+  const [search, setSearch] = useState("");
   const [hideSolved, setHideSolved] = useState<boolean>(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("cf_hide_solved");
+    const saved = storage.get("cf_hide_solved");
     if (saved !== null) {
+      // Hydrate the persisted preference after server rendering.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setHideSolved(saved === "true");
     }
   }, []);
 
   const handleHideSolvedChange = (v: boolean) => {
     setHideSolved(v);
-    localStorage.setItem("cf_hide_solved", String(v));
+    storage.set("cf_hide_solved", String(v));
+    setPage(1);
   };
 
   const [contestMap, setContestMap] = useState<Record<number, string> | null>(null);
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(CACHE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as { ts: number; problems: Problem[] };
-      if (!parsed || Date.now() - parsed.ts > CACHE_TTL) return;
-      setLocalProblems(parsed.problems);
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!problems?.length) {
-      setLocalProblems([]);
-      return;
-    }
-    setLocalProblems(problems);
-    try {
-      localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), problems }));
-    } catch {
-      // ignore
-    }
-  }, [problems]);
 
   useEffect(() => {
     let mounted = true;
@@ -89,16 +63,10 @@ const ProblemList: React.FC<ProblemListProps> = ({
     };
   }, []);
 
-  const source = localProblems.length ? localProblems : problems;
-  const isLoading = source.length === 0;
-
-  useEffect(() => {
-    setPage(1);
-    setPageInput("1");
-  }, [selectedTag]);
+  const source = problems;
 
   const filteredSorted = useMemo(() => {
-    let list = [...source];
+    let list = source.filter(p => `${p.contestId}${p.index} ${p.name}`.toLowerCase().includes(search.toLowerCase().trim()));
 
     if (hideSolved) {
       list = list.filter((p) => {
@@ -122,7 +90,7 @@ const ProblemList: React.FC<ProblemListProps> = ({
         break;
     }
     return list;
-  }, [source, sortOption, hideSolved, userStatusMap, userSolvedSet]);
+  }, [source, sortOption, hideSolved, userStatusMap, userSolvedSet, search]);
 
   const contestDivisionMap = useMemo(() => {
     if (!contestMap) return null;
@@ -135,9 +103,10 @@ const ProblemList: React.FC<ProblemListProps> = ({
   }, [contestMap]);
 
   const totalPages = Math.max(1, Math.ceil(filteredSorted.length / perPage));
-  const paged = paginate(filteredSorted, page, perPage);
+  const currentPage = Math.min(page, totalPages);
+  const paged = paginate(filteredSorted, currentPage, perPage);
 
-  useEffect(() => setPageInput(String(page)), [page]);
+
 
   const handlePageChange = (num: number) => {
     if (num < 1) num = 1;
@@ -146,7 +115,11 @@ const ProblemList: React.FC<ProblemListProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <label className="flex-1 max-w-lg"><span className="sr-only">Search problems</span><input type="search" aria-label="Search problems" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} placeholder="Search by name or problem ID…" className="w-full border border-foreground bg-[var(--card)] px-4 py-3 text-sm font-sans" /></label>
+        <p className="text-sm text-muted-foreground font-sans" role="status">{filteredSorted.length.toLocaleString()} problems</p>
+      </div>
       <ProblemSortControls
         sortOption={sortOption}
         onSortChange={(v) => {
@@ -157,11 +130,12 @@ const ProblemList: React.FC<ProblemListProps> = ({
         onHideSolvedChange={handleHideSolvedChange}
       />
 
+      {filteredSorted.length === 0 && <div className="border border-dashed py-16 text-center font-sans"><p className="font-semibold">No matching problems</p><p className="mt-2 text-sm text-muted-foreground">Try another rating, search term, or turn off Hide solved.</p></div>}
       {paged.map((p, idx) => {
         const key = `${p.contestId}-${p.index}`;
         const status: UserStatus =
           userStatusMap[key] ?? (userSolvedSet.has(key) ? "solved" : "unsolved");
-        const problemNumber = (page - 1) * perPage + idx + 1;
+        const problemNumber = (currentPage - 1) * perPage + idx + 1;
 
         const contestId = p.contestId ?? undefined;
         const division =
@@ -184,8 +158,8 @@ const ProblemList: React.FC<ProblemListProps> = ({
 
       <div className="flex justify-center gap-2 mt-4 items-center">
         <button
-          disabled={page === 1}
-          onClick={() => handlePageChange(page - 1)}
+          disabled={currentPage === 1}
+          onClick={() => handlePageChange(currentPage - 1)}
           className="px-3 py-1 rounded bg-gray-300 dark:bg-gray-700 dark:text-white disabled:opacity-50"
         >
           Prev
@@ -195,12 +169,15 @@ const ProblemList: React.FC<ProblemListProps> = ({
 
         <input
           type="text"
-          value={pageInput}
-          onChange={(e) => setPageInput(e.target.value)}
+          aria-label="Page number"
+          key={currentPage}
+          defaultValue={currentPage}
           onKeyDown={(e) => {
             if (e.key === "Enter") {
-              const num = parseInt(pageInput, 10);
-              handlePageChange(isNaN(num) ? 1 : num);
+              const num = parseInt(e.currentTarget.value, 10);
+              const valid = Math.min(totalPages, Math.max(1, isNaN(num) ? 1 : num));
+              e.currentTarget.value = String(valid);
+              handlePageChange(valid);
             }
           }}
           className="w-16 px-2 py-1 rounded border dark:bg-gray-800 dark:text-white dark:border-gray-700 text-center appearance-none"
@@ -211,8 +188,8 @@ const ProblemList: React.FC<ProblemListProps> = ({
         <span className="px-2 py-1 text-[var(--foreground)]">of {totalPages}</span>
 
         <button
-          disabled={page === totalPages}
-          onClick={() => handlePageChange(page + 1)}
+          disabled={currentPage === totalPages}
+          onClick={() => handlePageChange(currentPage + 1)}
           className="px-3 py-1 rounded bg-gray-300 dark:bg-gray-700 dark:text-white disabled:opacity-50"
         >
           Next

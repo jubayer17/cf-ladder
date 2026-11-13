@@ -41,7 +41,7 @@ self.addEventListener("fetch", (ev) => {
               cache.put(req, net.clone()).catch(() => {});
             }
             return net;
-          } catch (err) {
+          } catch {
             // if network fails, return 503 JSON fallback
             return new Response(JSON.stringify({ error: "offline" }), {
               status: 503,
@@ -52,7 +52,7 @@ self.addEventListener("fetch", (ev) => {
       );
       return;
     }
-  } catch (e) {
+  } catch {
     // if URL constructor fails, continue with default fetch
   }
 

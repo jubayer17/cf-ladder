@@ -1,3 +1,4 @@
+import { localDate } from "@/lib/codeforces";
 import React, { useMemo, useState, useEffect } from "react";
 
 interface HeatmapProps {
@@ -33,7 +34,7 @@ const Heatmap: React.FC<HeatmapProps> = ({ dailyCounts }) => {
     const availableYears = useMemo(() => {
         const years = new Set<number>();
         Object.keys(dailyCounts).forEach((date) => {
-            const year = new Date(date).getFullYear();
+            const year = Number(date.slice(0,4));
             if (!isNaN(year)) years.add(year);
         });
         years.add(currentDate.getFullYear());
@@ -42,7 +43,7 @@ const Heatmap: React.FC<HeatmapProps> = ({ dailyCounts }) => {
 
     const datesToDisplay = useMemo(() => {
         const dates: { date: string; count: number }[] = [];
-        const today = new Date();
+        const today = currentDate;
 
         let startDate: Date;
         let endDate: Date;
@@ -63,7 +64,7 @@ const Heatmap: React.FC<HeatmapProps> = ({ dailyCounts }) => {
 
         const current = new Date(startDate);
         while (current <= endDate) {
-            const dateStr = current.toISOString().split("T")[0];
+            const dateStr = localDate(current);
             dates.push({
                 date: dateStr,
                 count: dailyCounts[dateStr] || 0,
@@ -80,7 +81,7 @@ const Heatmap: React.FC<HeatmapProps> = ({ dailyCounts }) => {
         let currentMonthDates: { date: string; count: number }[] = [];
 
         datesToDisplay.forEach((item) => {
-            const date = new Date(item.date);
+            const date = new Date(`${item.date}T00:00:00`);
             const monthLabel = date.toLocaleString("default", { month: "short", year: "numeric" });
 
             if (monthLabel !== currentMonthLabel) {
@@ -112,12 +113,13 @@ const Heatmap: React.FC<HeatmapProps> = ({ dailyCounts }) => {
     };
 
     return (
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                    Submission Heatmap
+        <div className="desk-panel p-4 sm:p-6">
+            <div className="flex flex-wrap gap-3 justify-between items-center mb-6">
+                <h2 className="text-lg font-bold text-foreground">
+                    Solving activity
                 </h2>
                 <select
+                    aria-label="Activity year"
                     value={selectedYear}
                     onChange={(e) => {
                         const val = e.target.value;

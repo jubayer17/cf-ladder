@@ -1,14 +1,12 @@
 
 import { NextRequest } from "next/server";
+import { APPLAUSE_BASE_COUNT, APPLAUSE_COUNT_SCRIPT } from "@/lib/applause";
 import { Redis } from "@upstash/redis";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 const UPSTASH_URL = process.env.UPSTASH_REDIS_REST_URL;
 const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
-if (!UPSTASH_URL || !UPSTASH_TOKEN) {
-    console.error("UPSTASH env not set. Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN");
-}
 const redis = UPSTASH_URL && UPSTASH_TOKEN ? new Redis({ url: UPSTASH_URL, token: UPSTASH_TOKEN }) : null;
 
 const KEY = "applause_count";
@@ -45,20 +43,20 @@ function pickClientIp(forwardedHeader: string | null) {
 
 export async function GET() {
     try {
-        if (!redis) return new Response(JSON.stringify({ error: "Server misconfigured (redis missing)" }), { status: 500 });
+        if (!redis) return new Response(JSON.stringify({ error: "Applause is temporarily unavailable" }), { status: 503 });
 
-        const val = await redis.get(KEY);
+        const val = await redis.eval(APPLAUSE_COUNT_SCRIPT, [KEY], [APPLAUSE_BASE_COUNT, 0]);
         const count = safeNumber(val);
         return new Response(JSON.stringify({ count }), { status: 200 });
-    } catch (err: any) {
-        console.error("GET /api/applause error:", err?.message ?? err);
-        return new Response(JSON.stringify({ error: "Failed to load count", details: String(err) }), { status: 500 });
+    } catch (err: unknown) {
+        console.error("GET /api/applause error:", err instanceof Error ? err.message : err);
+        return new Response(JSON.stringify({ error: "Failed to load count" }), { status: 500 });
     }
 }
 
 export async function POST(req: NextRequest) {
     try {
-        if (!redis) return new Response(JSON.stringify({ error: "Server misconfigured (redis missing)" }), { status: 500 });
+        if (!redis) return new Response(JSON.stringify({ error: "Applause is temporarily unavailable" }), { status: 503 });
 
         // Get potential client IP from headers
         const xf = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || "";
@@ -69,24 +67,22 @@ export async function POST(req: NextRequest) {
             console.warn("Skipping IP rate-limit for dev/private IP:", ip);
         } else if (IP_LIMIT > 0) {
             const ipKey = `applause:ip:${ip}`;
-            const ipCountRaw = await redis.incr(ipKey);
+            const ipCountRaw = await redis.eval(
+                "local n = redis.call('INCR', KEYS[1]); if n == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]) end; return n",
+                [ipKey], [IP_WINDOW_SEC]
+            );
             const ipCount = safeNumber(ipCountRaw);
-            if (ipCount === 1) {
-                // set TTL on first creation
-                await redis.expire(ipKey, IP_WINDOW_SEC);
-            }
-            console.log(`applause POST from ${ip} — ipCount=${ipCount}`);
             if (ipCount > IP_LIMIT) {
                 return new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429 });
             }
         }
 
         // canonical increment
-        const newVal = await redis.incr(KEY);
+        const newVal = await redis.eval(APPLAUSE_COUNT_SCRIPT, [KEY], [APPLAUSE_BASE_COUNT, 1]);
         const count = safeNumber(newVal);
         return new Response(JSON.stringify({ count }), { status: 200 });
-    } catch (err: any) {
-        console.error("POST /api/applause error:", err?.message ?? err);
-        return new Response(JSON.stringify({ error: "Failed to increment", details: String(err) }), { status: 500 });
+    } catch (err: unknown) {
+        console.error("POST /api/applause error:", err instanceof Error ? err.message : err);
+        return new Response(JSON.stringify({ error: "Failed to increment" }), { status: 500 });
     }
 }

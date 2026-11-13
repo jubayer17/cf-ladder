@@ -26,7 +26,7 @@ export default function ContestList({
   onRefreshContest,
 }: ContestListProps) {
   return (
-    <div className="border border-gray-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-900">
+    <div className="border border-[var(--border)] rounded-none bg-[var(--card)]">
       {(loadingContests || loadingAllProblems) && (
         <div className="p-4">
           <Spinner />
@@ -52,9 +52,9 @@ export default function ContestList({
 
       {!loadingContests && !errorContests && (
         <div className="min-w-[900px]">
-          <div className="flex items-center border-b bg-gray-50 dark:bg-slate-800 dark:border-slate-700 sticky top-0 z-10">
+          <div className="flex items-center border-b bg-[var(--muted)] dark:border-slate-700 sticky top-0 z-10">
             <div className="flex items-center">
-              <div className="p-2 w-[280px] font-semibold border-r text-gray-900 dark:text-gray-100 dark:border-slate-700">
+              <div className="p-2 w-[280px] font-semibold border-r text-foreground dark:border-slate-700">
                 Contest
               </div>
             </div>
@@ -62,7 +62,7 @@ export default function ContestList({
               {Array.from({ length: Math.max(1, maxProblemsOnPage) }).map(
                 (_, i) => (
                   <div key={i} className="p-2 flex items-center justify-center">
-                    <div className="w-[160px] font-semibold text-center text-gray-900 dark:text-gray-100">
+                    <div className="w-[160px] font-semibold text-center text-foreground">
                       Problem {i + 1}
                     </div>
                   </div>

@@ -11,10 +11,10 @@ export default function StatsPage(): React.ReactElement {
     const { handle, dailySolveCounts } = useAppContext();
 
     return (
-        <div className="min-h-screen font-mono bg-[var(--background)] text-[var(--foreground)] transition-colors">
+        <div className="min-h-screen font-sans bg-[var(--background)] text-[var(--foreground)] transition-colors">
             <div className="p-6">
                 <div className="mb-6 mt-6">
-                    <h1 className="text-2xl font-bold">User Stats</h1>
+                    <p className="desk-kicker">YOUR RECORD / THE NUMBERS</p><h1 className="text-4xl font-bold tracking-tight mt-3">Practice, on record.</h1>
                 </div>
 
                 {!handle && <div className="text-gray-600">Enter your Codeforces handle above to see problem rating and tag statistics.</div>}
@@ -25,10 +25,10 @@ export default function StatsPage(): React.ReactElement {
                         <Heatmap dailyCounts={dailySolveCounts} />
 
                         {/* ProblemRatings appears first */}
-                        <ProblemRatings handle={handle} />
+                        <ProblemRatings key={`ratings-${handle}`} handle={handle} />
 
                         {/* TagsDonut appears below the ratings */}
-                        <TagsDonut handle={handle} />
+                        <TagsDonut key={`tags-${handle}`} handle={handle} />
                     </div>
                 )}
             </div>

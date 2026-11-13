@@ -7,13 +7,15 @@ import { RefreshCw } from "lucide-react";
 export default function UnsolvedPage() {
     const { attemptedUnsolvedProblems, fetchAndMergeUserData, handle, loadingUser } = useAppContext();
 
-    if (!attemptedUnsolvedProblems) {
+    if (loadingUser) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-300">
                 Loading unsolved problems...
             </div>
         );
     }
+
+    if (!handle) return <main className="mx-auto max-w-7xl p-8"><p className="desk-kicker">YOUR RECORD / UNFINISHED</p><h1 className="text-3xl font-bold mt-3">Unfinished problems</h1><p className="mt-4 text-muted-foreground">Connect your Codeforces handle above to see problems you have attempted.</p></main>;
 
     const validProblems = attemptedUnsolvedProblems.filter(p => p.link);
 

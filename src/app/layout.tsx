@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppContextProvider } from "../context/AppContext";
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     "CF Stats",
   ],
   authors: [{ name: "Jubayer Ahmed" }],
-  viewport: "width=device-width, initial-scale=1",
+
   openGraph: {
     title: "CF Ladder – Smart Codeforces Ladder & Problem Tracker",
     description:
@@ -63,6 +63,8 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = { width: "device-width", initialScale: 1 };
+
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -88,22 +90,18 @@ export default function RootLayout({
           content="DkY7lbwjx25NBdwjWjmupzINAtZ7-cIT9RMnVV3Wy-c"
         />
 
-        {/* Font Awesome */}
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"
-          integrity="sha512-papb/0kqH9Yp+...=="
-          crossOrigin="anonymous"
-          referrerPolicy="no-referrer"
-        />
+
       </head>
 
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[var(--card-bg)] transition-colors font-mono`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[var(--card-bg)] transition-colors font-sans`}
       >
         <AppContextProvider>
+          <a href="#main-content" className="skip-link">Skip to content</a>
           <NavbarWrapper />
+          <div id="main-content">
           {children}
+          </div>
           <Footer />
         </AppContextProvider>
       </body>

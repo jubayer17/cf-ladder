@@ -12,7 +12,7 @@ export type ProblemInfo = {
     verdict?: string; // Specific verdict (e.g. WRONG_ANSWER, TIME_LIMIT_EXCEEDED)
 };
 
-const normalizeIndex = (idx: any) => String(idx ?? "").toUpperCase().trim();
+const normalizeIndex = (idx: unknown) => String(idx ?? "").toUpperCase().trim();
 
 // rating -> colour classes (tailwind) - improved for both light and dark modes
 const ratingToColor = (rating?: number): string => {

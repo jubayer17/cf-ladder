@@ -4,7 +4,7 @@ import {
     FaSortDown, FaMagnifyingGlass, FaHashtag, FaTree, FaNetworkWired,
     FaGamepad, FaFont, FaDatabase, FaCubes, FaBolt, FaRoute, FaInfinity
 } from 'react-icons/fa6';
-import { MdDataObject, MdMemory } from 'react-icons/md';
+import { MdMemory } from 'react-icons/md';
 
 export const getTopicIcon = (topic: string) => {
     const normalized = topic.toLowerCase().trim();

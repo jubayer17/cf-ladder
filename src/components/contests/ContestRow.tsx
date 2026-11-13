@@ -23,7 +23,7 @@ const ContestRow: React.FC<Props> = ({ contest, problems, maxColumns, onRefresh,
     });
 
     return (
-        <div className="flex border-b border-gray-200 dark:border-slate-700 min-h-[100px]">
+        <div className="flex border-b border-[var(--border)] min-h-[100px]">
             <div className="flex items-stretch">
                 <ContestNameCell c={contest} onRefresh={onRefresh} refreshing={refreshing} />
             </div>

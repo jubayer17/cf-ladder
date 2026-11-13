@@ -14,7 +14,7 @@ export default function MissingProblemsWarning({
   return (
     <div className="mt-4 text-xs text-yellow-700">
       Note: {count} contest(s) missing problems in cache for this section. Use
-      per-row refresh or "Start loading (network)" to populate them.
+      per-row refresh or &quot;Start loading (network)&quot; to populate them.
     </div>
   );
 }

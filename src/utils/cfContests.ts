@@ -1,7 +1,7 @@
 // utils/cfContests.ts
 export type ContestMap = Record<number, string>;
 
-const CF_CONTEST_LIST = "https://codeforces.com/api/contest.list";
+const CF_CONTEST_LIST = "/api/codeforces/contest.list";
 const LOCAL_KEY = "cf_contest_list_cache_v1";
 const TTL = 1000 * 60 * 60 * 24; // 24h
 
@@ -61,6 +61,9 @@ export function parseDivisionFromContestName(name?: string | null): string | nul
     const global = /\bGlobal Round\b/i;
     const gym = /\bGym\b/i;
 
+    if (educational.test(name)) return "Educational";
+    if (global.test(name)) return "Global";
+    if (/Div\.?\s*1\b/i.test(name) && /Div\.?\s*2\b/i.test(name)) return "Div.1+2";
     const m = name.match(divRegex);
     if (m) {
         if (m[2]) return `Div.${m[1]}+${m[2]}`; // e.g. Div.1+2

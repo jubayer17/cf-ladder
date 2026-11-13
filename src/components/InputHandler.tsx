@@ -91,6 +91,8 @@ const InputHandler: React.FC = () => {
               animation: fadeIn 0.3s ease-in;
             }
           `}</style>
+          {/* Remote Codeforces avatars have dynamic hosts. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={userInfo.titlePhoto}
             alt={userInfo.handle}

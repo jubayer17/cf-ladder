@@ -1,5 +1,4 @@
 import React from "react";
-import { cfRatingColors } from "../utils/cfRatingColors";
 
 interface RatingSelectorProps {
   selectedRating: number;
@@ -13,23 +12,17 @@ const RatingSelector: React.FC<RatingSelectorProps> = ({
   const ratings = Array.from({ length: 28 }, (_, i) => 800 + i * 100);
 
   return (
-    <div className="flex flex-wrap gap-2 p-2">
+    <div className="desk-ratings flex flex-wrap gap-2">
       {ratings.map((r) => {
         const isSelected = selectedRating === r;
-        const bgColor = isSelected
-          ? cfRatingColors[r] || "#000"
-          : "var(--card-bg)";
-        const textColor = isSelected ? "#fff" : "var(--foreground)";
 
         return (
           <button
             key={r}
+            aria-pressed={isSelected}
             onClick={() => onSelect(r)}
-            style={{ backgroundColor: bgColor, color: textColor }}
-            className="
-              px-4 py-2 rounded-md font-medium border border-gray-300
-              transition-colors duration-200 hover:brightness-90 focus:outline-none focus:ring-2 focus:ring-blue-500
-            "
+            data-band={r < 1200 ? "base" : r < 1600 ? "green" : r < 2000 ? "blue" : r < 2400 ? "purple" : "coral"}
+            className="desk-rating px-3 py-2 font-mono text-xs font-semibold"
           >
             {r}
           </button>

@@ -1,3 +1,4 @@
+import { storage, localDate } from "@/lib/codeforces";
 // Track daily visit streaks using localStorage
 interface StreakData {
     lastVisit: string; // ISO date string
@@ -13,11 +14,11 @@ export const updateVisitStreak = (): StreakData => {
         return { lastVisit: '', currentStreak: 0, longestStreak: 0 };
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    const today = localDate(new Date());
 
-    const stored = localStorage.getItem(STREAK_KEY);
+    const stored = storage.get(STREAK_KEY);
     let streakData: StreakData = stored
-        ? JSON.parse(stored)
+        ? parseStreak(stored)
         : { lastVisit: '', currentStreak: 0, longestStreak: 0 };
 
     if (!streakData.lastVisit) {
@@ -44,7 +45,7 @@ export const updateVisitStreak = (): StreakData => {
         streakData.lastVisit = today;
     }
 
-    localStorage.setItem(STREAK_KEY, JSON.stringify(streakData));
+    storage.set(STREAK_KEY, JSON.stringify(streakData));
     return streakData;
 };
 
@@ -54,9 +55,9 @@ export const getVisitStreak = (): StreakData => {
         return { lastVisit: '', currentStreak: 0, longestStreak: 0 };
     }
 
-    const stored = localStorage.getItem(STREAK_KEY);
+    const stored = storage.get(STREAK_KEY);
     return stored
-        ? JSON.parse(stored)
+        ? parseStreak(stored)
         : { lastVisit: '', currentStreak: 0, longestStreak: 0 };
 };
 
@@ -66,5 +67,13 @@ export const resetVisitStreak = (): void => {
         return;
     }
 
-    localStorage.removeItem(STREAK_KEY);
+    storage.remove(STREAK_KEY);
 };
+
+function parseStreak(raw: string): StreakData {
+    try {
+        const data = JSON.parse(raw);
+        if (typeof data.lastVisit === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.lastVisit) && Number.isInteger(data.currentStreak) && data.currentStreak >= 0 && Number.isInteger(data.longestStreak)) return data;
+    } catch { /* Corrupt storage should never break navigation. */ }
+    return { lastVisit: '', currentStreak: 0, longestStreak: 0 };
+}

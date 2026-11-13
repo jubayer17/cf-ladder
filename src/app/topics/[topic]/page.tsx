@@ -13,10 +13,10 @@ import { getTopicIcon } from '@/utils/topicIcons';
 const TopicDetailsPage = () => {
     const params = useParams();
     const router = useRouter();
-    const { problems, loadingProblems, userSolvedSet, attemptedUnsolvedProblems } = useAppContext();
+    const { problems, errorProblems, fetchProblems, loadingProblems, userSolvedSet, attemptedUnsolvedProblems } = useAppContext();
 
     const topic = useMemo(() => {
-        return decodeURIComponent(params.topic as string);
+        return String(params.topic || "");
     }, [params.topic]);
 
     const filteredProblems = useMemo(() => {
@@ -70,6 +70,8 @@ const TopicDetailsPage = () => {
         return map;
     }, [userSolvedSet, attemptedUnsolvedProblems]);
 
+    if (errorProblems) return <div role="alert" className="mx-auto max-w-lg p-8 text-center"><p>{errorProblems}</p><button className="mt-4 rounded-lg bg-blue-600 text-white px-4 py-2" onClick={() => void fetchProblems()}>Try again</button></div>;
+
     if (loadingProblems) {
         return (
             <div className="flex justify-center items-center h-[50vh]">
@@ -82,12 +84,12 @@ const TopicDetailsPage = () => {
     const solvedPercentage = stats.total > 0 ? Math.round((stats.solved / stats.total) * 100) : 0;
 
     return (
-        <div className="container mx-auto py-8 px-4 max-w-7xl font-mono">
+        <div className="container mx-auto py-8 px-4 max-w-7xl font-sans">
             {/* Back Button */}
             <Button
                 variant="ghost"
                 onClick={() => router.push('/topics')}
-                className="mb-6 pl-0 hover:pl-2 transition-all font-mono"
+                className="mb-6 pl-0 hover:pl-2 transition-all font-sans"
             >
                 ← Back to Topics
             </Button>
@@ -95,7 +97,7 @@ const TopicDetailsPage = () => {
             {/* Header */}
             <div className="mb-8">
                 <div className="flex items-center gap-4 mb-6">
-                    <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 text-primary text-5xl">
+                    <div className="p-4 rounded-sm text-primary text-5xl">
                         {icon}
                     </div>
                     <div>
@@ -109,7 +111,7 @@ const TopicDetailsPage = () => {
                 {/* Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                     {/* Solved Progress */}
-                    <Card className="border-2 border-green-500/30 bg-gradient-to-br from-green-500/5 to-transparent">
+                    <Card className="border-2 border-green-500/30 ">
                         <CardContent className="p-4">
                             <div className="text-sm text-muted-foreground mb-1">Solved</div>
                             <div className="text-2xl font-bold text-green-600 dark:text-green-400">
@@ -128,7 +130,7 @@ const TopicDetailsPage = () => {
                     </Card>
 
                     {/* Attempted */}
-                    <Card className="border-2 border-yellow-500/30 bg-gradient-to-br from-yellow-500/5 to-transparent">
+                    <Card className="border-2 border-yellow-500/30 ">
                         <CardContent className="p-4">
                             <div className="text-sm text-muted-foreground mb-1">Attempted</div>
                             <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
@@ -141,7 +143,7 @@ const TopicDetailsPage = () => {
                     </Card>
 
                     {/* Unsolved */}
-                    <Card className="border-2 border-blue-500/30 bg-gradient-to-br from-blue-500/5 to-transparent">
+                    <Card className="border-2 border-blue-500/30 ">
                         <CardContent className="p-4">
                             <div className="text-sm text-muted-foreground mb-1">Unsolved</div>
                             <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
@@ -154,7 +156,7 @@ const TopicDetailsPage = () => {
                     </Card>
 
                     {/* Difficulty Range */}
-                    <Card className="border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-transparent">
+                    <Card className="border-2 border-primary/30 ">
                         <CardContent className="p-4">
                             <div className="text-sm text-muted-foreground mb-1">Difficulty Range</div>
                             <div className="text-2xl font-bold">
@@ -179,7 +181,7 @@ const TopicDetailsPage = () => {
                                     return Number(a) - Number(b);
                                 })
                                 .map(([rating, count]) => (
-                                    <Badge key={rating} variant="secondary" className="font-mono">
+                                    <Badge key={rating} variant="secondary" className="font-sans">
                                         {rating === 'unrated' ? 'Unrated' : rating}: {count}
                                     </Badge>
                                 ))}
