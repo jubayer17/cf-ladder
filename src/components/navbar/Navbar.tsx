@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggleButton from "./ThemeToggleButton";
 import ReportBug from "./ReportBug";
+import SupportLink from "@/components/SupportLink";
 import EnterHandle from "./EnterHandle";
 import ApplauseCounter from "./ApplauseCounter";
 import { updateVisitStreak } from "@/utils/streakTracker";
@@ -96,6 +97,7 @@ const Navbar: React.FC<NavbarProps> = ({
         )}
 
         <ReportBug />
+        <SupportLink />
         <ApplauseCounter />
       </div>
     </header >

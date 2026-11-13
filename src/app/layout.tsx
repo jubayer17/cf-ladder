@@ -1,18 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Ubuntu, Ubuntu_Mono } from "next/font/google";
 import "./globals.css";
 import { AppContextProvider } from "../context/AppContext";
 import Footer from "@/components/Footer";
 import NavbarWrapper from "@/components/navbar/NavbarWrapper";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const ubuntu = Ubuntu({
+  variable: "--font-ubuntu",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const ubuntuMono = Ubuntu_Mono({
+  variable: "--font-ubuntu-mono",
   subsets: ["latin"],
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
@@ -94,7 +96,7 @@ export default function RootLayout({
       </head>
 
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[var(--card-bg)] transition-colors font-sans`}
+        className={`${ubuntu.variable} ${ubuntuMono.variable} antialiased bg-[var(--card-bg)] transition-colors font-sans`}
       >
         <AppContextProvider>
           <a href="#main-content" className="skip-link">Skip to content</a>

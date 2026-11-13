@@ -180,6 +180,7 @@ body {
 }
 
 @theme inline {
+  --font-mono: var(--font-ubuntu-mono), ui-monospace, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -292,7 +293,7 @@ button:not(:disabled), select { cursor: pointer; }
   --desk-on-color: #23202c;
   --desk-selected: #ef7856;
   --radius: .25rem;
-  --font-sans: var(--font-geist-sans), Arial, sans-serif;
+  --font-sans: var(--font-ubuntu), Arial, sans-serif;
 }
 .dark, [data-theme="dark"] {
   --background: #13151e;
@@ -319,11 +320,11 @@ button:not(:disabled), select { cursor: pointer; }
   --desk-selected: #f3bd6a;
 }
 body {
-  font-family: var(--font-geist-sans), Arial, sans-serif;
+  font-family: var(--font-ubuntu), Arial, sans-serif;
   background-image: radial-gradient(var(--desk-grid) .75px, transparent .75px);
   background-size: 18px 18px;
 }
-.desk-kicker { font-family: var(--font-geist-mono), monospace; font-size: 10px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; }
+.desk-kicker { font-family: var(--font-ubuntu-mono), monospace; font-size: 10px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; }
 .desk-intro { position: relative; border: 2px solid var(--desk-ink); background: var(--desk-hero); padding: 28px 32px; box-shadow: 7px 7px 0 var(--desk-shadow); }
 .desk-intro > div:first-child { position: relative; z-index: 1; }
 .desk-intro .desk-kicker { display: inline-block; background: var(--foreground); color: var(--background); padding: 6px 9px; }
@@ -332,7 +333,7 @@ body {
 .desk-dot { color: #ad3519; }
 .desk-logo { display: grid; place-items: center; width: 32px; height: 32px; border: 2px solid #23202c; background: var(--desk-highlight); color: #23202c; box-shadow: 3px 3px 0 var(--desk-shadow); font-family: monospace; }
 header { box-shadow: 0 4px 0 var(--desk-shadow); border-color: var(--desk-ink) !important; }
-.desk-nav-link { border: 2px solid transparent; font-family: var(--font-geist-mono), monospace; border-radius: 2px; }
+.desk-nav-link { border: 2px solid transparent; font-family: var(--font-ubuntu-mono), monospace; border-radius: 2px; }
 .desk-nav-active { border-color: var(--desk-ink); background: var(--desk-highlight); color: #23202c; box-shadow: 3px 3px 0 var(--desk-shadow); transform: rotate(-2deg); }
 .desk-stamp { position: relative; flex-shrink: 0; color: #23202c; border: 2px solid #23202c; padding: 20px; background: var(--desk-highlight); box-shadow: 6px 6px 0 var(--desk-shadow); transform: rotate(3deg); }
 .desk-stamp::before { content: ''; position: absolute; width: 40px; height: 18px; top: -11px; left: 35%; transform: rotate(-8deg); border: 1px solid #23202c; background: #fff4c2; }
@@ -341,14 +342,14 @@ header { box-shadow: 0 4px 0 var(--desk-shadow); border-color: var(--desk-ink) !
 .desk-metric { position: relative; border: 2px solid var(--desk-ink); box-shadow: 4px 4px 0 var(--desk-shadow); color: var(--desk-on-color); }
 .desk-metric .desk-kicker { padding-right: 28px; }
 .desk-metric .text-muted-foreground { color: inherit; opacity: .8; }
-.desk-metric-index { position: absolute; right: 10px; top: 12px; font-family: var(--font-geist-mono), monospace; font-size: 9px; opacity: .65; }
+.desk-metric-index { position: absolute; right: 10px; top: 12px; font-family: var(--font-ubuntu-mono), monospace; font-size: 9px; opacity: .65; }
 .desk-metric-0 { background: var(--desk-blue); }
 .desk-metric-1 { background: var(--desk-mint); }
 .desk-metric-2 { background: var(--desk-lilac); }
 .desk-metric-3 { background: var(--desk-coral); }
 .desk-note { display: inline-block; padding: 3px 6px; margin-right: 6px; border: 1px solid #23202c; background: var(--desk-highlight); color: #23202c; font-weight: 700; transform: rotate(-3deg); }
 .desk-section-title { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--desk-ink); padding-bottom: 12px; gap: 12px; }
-.desk-section-title h2 { font-family: var(--font-geist-mono), monospace; font-size: 12px; font-weight: 700; letter-spacing: .04em; }
+.desk-section-title h2 { font-family: var(--font-ubuntu-mono), monospace; font-size: 12px; font-weight: 700; letter-spacing: .04em; }
 .desk-section-number { display: inline-block; background: var(--desk-coral); color: var(--desk-on-color); border: 1px solid var(--desk-ink); box-shadow: 2px 2px 0 var(--desk-shadow); padding: 5px 7px; margin-right: 10px; font-size: 10px; }
 .desk-action { background: var(--desk-highlight); color: #23202c; border: 2px solid var(--desk-ink); box-shadow: 3px 3px 0 var(--desk-shadow); padding: 10px 16px; font-size: 12px; font-weight: 700; }
 .desk-panel { border: 2px solid var(--desk-ink); box-shadow: 4px 4px 0 var(--desk-shadow); background: var(--card); }
@@ -411,7 +412,7 @@ header { box-shadow: 0 4px 0 var(--desk-shadow); border-color: var(--desk-ink) !
 .desk-problem-id { background: var(--problem-chip); color: var(--problem-text); border-color: var(--problem-border); }
 .desk-problem-tag { background: var(--problem-chip); color: var(--problem-muted); border: 1px solid var(--problem-border); }
 .desk-problem-meta, .desk-problem-arrow { color: var(--problem-muted); }
-.desk-problem-status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border: 1px solid var(--problem-border); background: var(--problem-chip); color: var(--problem-text); font-family: var(--font-geist-mono), monospace; font-size: 10px; font-weight: 700; }
+.desk-problem-status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 7px; border: 1px solid var(--problem-border); background: var(--problem-chip); color: var(--problem-text); font-family: var(--font-ubuntu-mono), monospace; font-size: 10px; font-weight: 700; }
 .problem-state[data-status="solved"] .desk-problem-status { background: #247747; color: #fff; border-color: #247747; }
 .dark .problem-state[data-status="solved"] .desk-problem-status, [data-theme="dark"] .problem-state[data-status="solved"] .desk-problem-status { background: #a8dfb1; color: #173e28; border-color: #a8dfb1; }
 .desk-topic { background: var(--desk-lilac); border: 2px solid var(--desk-ink); color: var(--desk-on-color); box-shadow: 4px 4px 0 var(--desk-shadow); transition: transform 130ms, box-shadow 130ms; }
@@ -423,11 +424,17 @@ header { box-shadow: 0 4px 0 var(--desk-shadow); border-color: var(--desk-ink) !
 header button, header input { border-radius: 2px !important; }
 header input { border: 1.5px solid var(--desk-ink); background: var(--card); font-size: 12px; }
 header button.bg-blue-600 { background: var(--desk-coral); color: var(--desk-on-color); border: 1.5px solid var(--desk-ink); box-shadow: 2px 2px 0 var(--desk-shadow); }
-.desk-theme-toggle, .desk-report { background: var(--card); color: var(--foreground); border: 1.5px solid var(--desk-ink); box-shadow: 2px 2px 0 var(--desk-shadow); }
+.desk-support-text { text-align: left; cursor: pointer; }
+.desk-support-text:hover { text-decoration: underline; }
+.desk-support-heading { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.desk-wallet { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border: 1.5px solid var(--desk-ink); background: var(--muted); box-shadow: 2px 2px 0 var(--desk-shadow); }
+.desk-wallet-name { font-size: 12px; font-weight: 700; letter-spacing: .02em; color: var(--muted-foreground); }
+.desk-wallet-number { font-family: var(--font-ubuntu-mono), monospace; font-size: 18px; font-weight: 700; }
+.desk-theme-toggle, .desk-report, .desk-support { background: var(--card); color: var(--foreground); border: 1.5px solid var(--desk-ink); box-shadow: 2px 2px 0 var(--desk-shadow); }
 .desk-connected { background: var(--desk-blue); border: 1.5px solid var(--desk-ink); box-shadow: 2px 2px 0 var(--desk-shadow); }
 .desk-applause-wrap { flex-shrink: 0; }
 .desk-clap { display: flex; align-items: center; gap: 6px; padding: 8px 10px; min-height: 36px; background: var(--desk-highlight); color: #23202c; border: 1.5px solid #23202c; box-shadow: 3px 3px 0 var(--desk-shadow); font-size: 13px; font-weight: 800; transition: transform 120ms, box-shadow 120ms; }
-.desk-clap-scope { font-family: var(--font-geist-mono), monospace; font-size: 8px; font-weight: 600; }
+.desk-clap-scope { font-family: var(--font-ubuntu-mono), monospace; font-size: 8px; font-weight: 600; }
 .desk-clap:active, .desk-rating:active, .desk-action:active { transform: translate(2px,2px); box-shadow: none; }
 .desk-clap:disabled { opacity: .6; cursor: wait; }
 .desk-footer { background: var(--background); }
@@ -452,12 +459,12 @@ header button.bg-blue-600 { background: var(--desk-coral); color: var(--desk-on-
 /* Profile record: a framed identity, a score strip and an honest progress scale. */
 .desk-profile { border: 2px solid var(--desk-ink); background: var(--card); box-shadow: 6px 6px 0 var(--desk-shadow); }
 .profile-topline { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 22px; border-bottom: 2px solid var(--desk-ink); background: var(--desk-blue); }
-.profile-connected { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-geist-mono), monospace; font-size: 9px; font-weight: 600; letter-spacing: .06em; }
+.profile-connected { display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-ubuntu-mono), monospace; font-size: 9px; font-weight: 600; letter-spacing: .06em; }
 .profile-connected > span { width: 7px; height: 7px; background: #278267; border: 1px solid #123f31; }
 .dark .profile-connected > span { background: #a8dfb1; }
 .profile-identity-row { display: flex; align-items: center; gap: 24px; padding: 28px 24px; }
 .profile-avatar-frame { flex-shrink: 0; width: 92px; height: 92px; position: relative; border: 2px solid var(--desk-ink); box-shadow: 4px 4px 0 var(--desk-shadow); transform: rotate(-3deg); background: var(--desk-lilac); }
-.profile-avatar-fallback { display: grid; place-items: center; position: absolute; inset: 0; font-family: var(--font-geist-mono), monospace; font-size: 30px; font-weight: 800; color: var(--desk-on-color); }
+.profile-avatar-fallback { display: grid; place-items: center; position: absolute; inset: 0; font-family: var(--font-ubuntu-mono), monospace; font-size: 30px; font-weight: 800; color: var(--desk-on-color); }
 .profile-avatar-image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; }
 .profile-avatar-image.is-loaded { opacity: 1; }
 .profile-avatar-check { position: absolute; bottom: -8px; right: -8px; width: 25px; height: 25px; display: grid; place-items: center; color: #23202c; background: var(--desk-highlight); border: 2px solid #23202c; box-shadow: 2px 2px 0 var(--desk-shadow); }
@@ -465,9 +472,9 @@ header button.bg-blue-600 { background: var(--desk-coral); color: var(--desk-on-
 .profile-handle { display: flex; align-items: center; gap: 10px; width: fit-content; max-width: 100%; overflow-wrap: anywhere; font-size: clamp(22px, 3vw, 32px); font-weight: 800; line-height: 1.15; letter-spacing: -.04em; }
 .profile-handle svg { flex-shrink: 0; }
 .profile-handle:hover { text-decoration: underline; text-underline-offset: 5px; }
-.profile-rank { display: inline-block; margin-top: 10px; padding: 4px 8px; border: 1px solid var(--desk-ink); background: var(--desk-mint); color: var(--desk-on-color); font-family: var(--font-geist-mono), monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; }
+.profile-rank { display: inline-block; margin-top: 10px; padding: 4px 8px; border: 1px solid var(--desk-ink); background: var(--desk-mint); color: var(--desk-on-color); font-family: var(--font-ubuntu-mono), monospace; font-size: 10px; font-weight: 600; text-transform: uppercase; }
 .profile-completion { border-left: 2px dashed var(--border); padding: 0 8px 0 28px; }
-.profile-completion p { font-family: var(--font-geist-mono), monospace; font-size: 44px; font-weight: 800; letter-spacing: -.07em; line-height: 1.3; }
+.profile-completion p { font-family: var(--font-ubuntu-mono), monospace; font-size: 44px; font-weight: 800; letter-spacing: -.07em; line-height: 1.3; }
 .profile-completion p > span { font-size: 24px; margin-left: 3px; color: var(--muted-foreground); }
 .profile-stat-grid { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); border-block: 2px solid var(--desk-ink); }
 .profile-stat { padding: 16px 20px; color: var(--desk-on-color); }
@@ -477,11 +484,11 @@ header button.bg-blue-600 { background: var(--desk-coral); color: var(--desk-on-
 .profile-stat-solved { background: var(--desk-mint); }
 .profile-stat-attempted { background: var(--desk-coral); }
 .profile-stat-streak { background: var(--muted); }
-.profile-stat-label { display: flex; justify-content: space-between; gap: 6px; font-family: var(--font-geist-mono), monospace; font-size: 9px; font-weight: 600; line-height: 1.5; }
+.profile-stat-label { display: flex; justify-content: space-between; gap: 6px; font-family: var(--font-ubuntu-mono), monospace; font-size: 9px; font-weight: 600; line-height: 1.5; }
 .profile-stat-label svg { flex-shrink: 0; opacity: .7; }
 .profile-stat > p { margin-top: 8px; font-size: 27px; font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
 .profile-progress-section { padding: 18px 24px 22px; }
-.profile-progress-label { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-family: var(--font-geist-mono), monospace; font-size: 10px; color: var(--muted-foreground); }
+.profile-progress-label { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-family: var(--font-ubuntu-mono), monospace; font-size: 10px; color: var(--muted-foreground); }
 .profile-progress-label strong { color: var(--foreground); }
 .profile-progress-track { margin-top: 10px; border: 1px solid var(--desk-ink); height: 14px; background: var(--muted); }
 .profile-progress-track > div { height: 100%; background: #48ac83; border-right: 1px solid var(--desk-ink); }
@@ -514,7 +521,9 @@ header > div:first-child > .desk-theme-toggle { order: 3; margin-left: 8px; }
   header > div:first-child > .desk-theme-toggle { order: 1; margin-left: auto; }
   .desk-header-tools { flex-wrap: nowrap; }
   .desk-header-tools .desk-report { width: 32px; height: 36px; padding: 0; font-size: 0; }
-  .desk-header-tools .desk-report::before { content: '!'; font-family: var(--font-geist-mono), monospace; font-size: 16px; font-weight: 800; }
+  .desk-header-tools .desk-report::before { content: '!'; font-family: var(--font-ubuntu-mono), monospace; font-size: 16px; font-weight: 800; }
+  .desk-header-tools .desk-support { width: 32px; height: 36px; padding: 0; justify-content: center; font-size: 15px; }
+  .desk-header-tools .desk-support-label { display: none; }
   .desk-header-tools form button { padding-inline: 8px; font-size: 12px; }
   .desk-clap { padding-inline: 8px; gap: 5px; }
   .desk-clap-scope { font-size: 7px; }
@@ -523,11 +532,11 @@ header > div:first-child > .desk-theme-toggle { order: 3; margin-left: 8px; }
 
 /* Topic filters use the same printed palette and tactile states as the rating controls. */
 .desk-tag-panel { border: 2px solid var(--desk-ink); background: var(--card); box-shadow: 4px 4px 0 var(--desk-shadow); }
-.desk-tag-panel-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--desk-ink); background: var(--desk-lilac); color: var(--desk-on-color); font-family: var(--font-geist-mono), monospace; font-size: 10px; font-weight: 600; letter-spacing: .05em; }
+.desk-tag-panel-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--desk-ink); background: var(--desk-lilac); color: var(--desk-on-color); font-family: var(--font-ubuntu-mono), monospace; font-size: 10px; font-weight: 600; letter-spacing: .05em; }
 .desk-tag-panel-heading > div { display: flex; align-items: center; gap: 8px; }
 .desk-tag-panel-heading > span { font-size: 9px; opacity: .8; }
 .desk-tag-options { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 10px; padding: 18px; }
-.desk-tag-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; min-height: 40px; padding: 8px 10px; border: 1.5px solid var(--desk-ink); color: var(--desk-on-color); background: var(--muted); box-shadow: 2px 2px 0 var(--desk-shadow); font-family: var(--font-geist-mono), monospace; font-size: 11px; line-height: 1.4; text-align: left; transition: transform 120ms, box-shadow 120ms; }
+.desk-tag-chip { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; min-height: 40px; padding: 8px 10px; border: 1.5px solid var(--desk-ink); color: var(--desk-on-color); background: var(--muted); box-shadow: 2px 2px 0 var(--desk-shadow); font-family: var(--font-ubuntu-mono), monospace; font-size: 11px; line-height: 1.4; text-align: left; transition: transform 120ms, box-shadow 120ms; }
 .desk-tag-chip[data-tone="lilac"] { background: var(--desk-lilac); }
 .desk-tag-chip[data-tone="mint"] { background: var(--desk-mint); }
 .desk-tag-chip[data-tone="blue"] { background: var(--desk-blue); }
@@ -549,14 +558,14 @@ header > div:first-child > .desk-theme-toggle { order: 3; margin-left: 8px; }
 /* One set of progress colors follows a problem everywhere it appears. */
 .problem-state[data-status="pending"] { --problem-border: #4375aa; --problem-surface: #e1edf9; --problem-text: #233f66; --problem-muted: #466182; --problem-chip: #cadff4; }
 .dark .problem-state[data-status="pending"], [data-theme="dark"] .problem-state[data-status="pending"] { --problem-border: #81acd7; --problem-surface: #253c59; --problem-text: #edf5ff; --problem-muted: #c0d4eb; --problem-chip: #324f71; }
-.desk-progress-legend { display: flex; flex-wrap: wrap; gap: 10px 16px; font-family: var(--font-geist-mono), monospace; font-size: 10px; color: var(--muted-foreground); }
+.desk-progress-legend { display: flex; flex-wrap: wrap; gap: 10px 16px; font-family: var(--font-ubuntu-mono), monospace; font-size: 10px; color: var(--muted-foreground); }
 .desk-progress-legend > span { display: inline-flex; align-items: center; gap: 6px; }
 .desk-progress-legend i { width: 9px; height: 9px; border: 1px solid var(--desk-ink); background: var(--card); }
 .desk-progress-legend i[data-state="solved"] { background: #58ac72; }
 .desk-progress-legend i[data-state="failed"] { background: #e0b15d; }
 .desk-progress-legend i[data-state="pending"] { background: #7caedb; }
 .desk-retry-card { display: block; padding: 18px; height: 100%; }
-.desk-retry-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 12px; font-family: var(--font-geist-mono), monospace; font-size: 10px; color: var(--problem-muted); }
+.desk-retry-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 12px; font-family: var(--font-ubuntu-mono), monospace; font-size: 10px; color: var(--problem-muted); }
 
 /* A topic keeps its identity color; card surfaces still communicate progress. */
 :root { --desk-amber: #f6df9d; --desk-rose: #ecc9df; --desk-teal: #bce1e3; }
@@ -601,13 +610,13 @@ header > div:first-child > .desk-theme-toggle { order: 3; margin-left: 8px; }
 .desk-secondary:disabled, .desk-icon-button:disabled, .desk-pagination button:disabled, .desk-action:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; }
 .desk-secondary:active, .desk-pagination button:active, .desk-category-button:active { transform: translate(2px,2px); box-shadow: none; }
 .desk-category-button[aria-pressed="true"] { background: var(--desk-highlight); color: #23202c; border-color: #23202c; }
-.desk-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px; font-family: var(--font-geist-mono), monospace; font-size: 11px; padding-top: 12px; }
+.desk-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px; font-family: var(--font-ubuntu-mono), monospace; font-size: 11px; padding-top: 12px; }
 .desk-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .desk-toolbar input, .desk-toolbar select, .desk-select, .desk-textarea { width: 100%; border: 1.5px solid var(--desk-ink); border-radius: 0; background: var(--card); color: var(--foreground); padding: 11px 12px; font-size: 12px; }
 .desk-toolbar select, .desk-select { width: auto; }
 .desk-textarea { resize: vertical; }
 .desk-dialog { border: 2px solid var(--desk-ink); border-radius: 2px; background: var(--card); color: var(--foreground); box-shadow: 7px 7px 0 var(--desk-shadow); }
-.desk-back-link { display: inline-block; font-family: var(--font-geist-mono), monospace; font-size: 12px; text-decoration: underline; text-underline-offset: 4px; }
+.desk-back-link { display: inline-block; font-family: var(--font-ubuntu-mono), monospace; font-size: 12px; text-decoration: underline; text-underline-offset: 4px; }
 .desk-profile-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; border: 1.5px solid var(--desk-ink); background: var(--card); padding: 12px 16px; box-shadow: 3px 3px 0 var(--desk-shadow); }
 .profile-summary-avatar { position: relative; flex-shrink: 0; display: block; width: 40px; height: 40px; border: 1px solid var(--desk-ink); background: var(--desk-lilac); }
 .profile-summary-avatar .profile-avatar-fallback { font-size: 15px; }
@@ -619,7 +628,7 @@ header > div:first-child > .desk-theme-toggle { order: 3; margin-left: 8px; }
 .desk-contest-problem h3 { margin-top: 8px; font-size: 12px; font-weight: 650; line-height: 1.5; overflow-wrap: anywhere; }
 .desk-contest-problem-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-top: 12px; }
 .desk-contest-problem .desk-problem-status { font-size: 9px; padding: 3px 5px; }
-.desk-rating-pill { display: inline-block; padding: 3px 5px; border: 1px solid #00000030; font-family: var(--font-geist-mono), monospace; font-size: 10px; font-weight: 600; }
+.desk-rating-pill { display: inline-block; padding: 3px 5px; border: 1px solid #00000030; font-family: var(--font-ubuntu-mono), monospace; font-size: 10px; font-weight: 600; }
 .desk-contest-empty { display: grid; place-items: center; width: 160px; min-height: 120px; height: 100%; border: 1px dashed var(--border); color: var(--muted-foreground); font-size: 12px; }
 .desk-contest-missing { display: flex; flex-direction: column; justify-content: center; padding: 20px; font-size: 12px; min-width: 280px; }
 .desk-contest-missing p { font-weight: 650; }
@@ -627,15 +636,15 @@ header > div:first-child > .desk-theme-toggle { order: 3; margin-left: 8px; }
 .desk-topic[data-complete="true"] { background: #d9f1db; color: #173e28; border-color: #247747; }
 .dark .desk-topic[data-complete="true"] { background: #1c3d2c; color: #e5f7e9; border-color: #71c78a; }
 .desk-topic-progress { padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--desk-ink); }
-.desk-topic-progress > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-family: var(--font-geist-mono), monospace; font-size: 10px; }
+.desk-topic-progress > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-family: var(--font-ubuntu-mono), monospace; font-size: 10px; }
 .desk-topic-progress-track { display: block; margin-top: 8px; height: 6px; border: 1px solid var(--desk-ink); background: var(--card); }
 .desk-topic-progress-track > span { display: block; height: 100%; background: #38895c; }
 .dark .desk-topic-progress-track > span { background: #92d6a3; }
 .desk-topic-metrics { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
 .desk-topic-metrics > div { padding: 16px; }
-.desk-topic-metrics span { display: block; font-family: var(--font-geist-mono), monospace; font-size: 10px; }
+.desk-topic-metrics span { display: block; font-family: var(--font-ubuntu-mono), monospace; font-size: 10px; }
 .desk-topic-metrics strong { display: block; margin-top: 10px; font-size: 30px; font-weight: 750; }
-.desk-distribution-chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 8px; border: 1px solid var(--desk-ink); background: var(--muted); font-family: var(--font-geist-mono), monospace; font-size: 10px; }
+.desk-distribution-chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 8px; border: 1px solid var(--desk-ink); background: var(--muted); font-family: var(--font-ubuntu-mono), monospace; font-size: 10px; }
 .desk-distribution-chip b { font-size: 9px; opacity: .7; }
 .desk-chart-panel > div:first-child h2, .desk-chart-panel > div:first-child h3 { font-size: 22px; letter-spacing: -.025em; }
 .desk-chart-tooltip { background: #151a25; color: #fff; max-width: min(300px, calc(100vw - 24px)); border: 1px solid #79859a; box-shadow: 3px 3px 0 #000; white-space: normal; }
