@@ -68,6 +68,7 @@ const Ladder: React.FC<LadderProps> = ({
         <div className="w-full">
           <button
             aria-expanded={showTags}
+            aria-controls="practice-topic-filter"
             onClick={() => { setShowTags(!showTags); setSelectedTag(null); }}
             className="desk-filter-toggle px-3 py-2 text-xs font-mono"
             data-active={showTags}
@@ -81,6 +82,7 @@ const Ladder: React.FC<LadderProps> = ({
             <TagSelector
               tags={sortedTags}
               tagCounts={tagCounts}
+              totalCount={problemsForRating.length}
               selectedTag={selectedTag}
               onSelectTag={(t) => setSelectedTag(t)}
             />

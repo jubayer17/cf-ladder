@@ -1,62 +1,34 @@
 "use client";
 
-import React, { useMemo } from "react";
-import { getTagColor } from "../utils/tagColors";
+import { useMemo } from "react";
+import { Check, SlidersHorizontal } from "lucide-react";
 
 interface TagSelectorProps {
-  tags: string[]; // expected to be sorted by count desc, then alphabetically
-  tagCounts?: Record<string, number>;
+  tags: string[];
+  tagCounts: Record<string, number>;
+  totalCount: number;
   selectedTag: string | null;
   onSelectTag: (tag: string | null) => void;
-  isDarkMode?: boolean;
+}
+const tones = ["lilac", "mint", "blue", "coral"];
+function toneFor(tag: string) {
+  return tones[Array.from(tag).reduce((sum, letter) => sum + letter.charCodeAt(0), 0) % tones.length];
 }
 
-const TagSelector: React.FC<TagSelectorProps> = ({
-  tags,
-  tagCounts = {},
-  selectedTag,
-  onSelectTag,
-  isDarkMode = false,
-}) => {
-  // defensive: if tags passed unsorted, sort by counts desc then alpha
-  const orderedTags = useMemo(() => {
-    const copy = [...tags];
-    copy.sort((a, b) => {
-      const diff = (tagCounts[b] || 0) - (tagCounts[a] || 0);
-      return diff !== 0 ? diff : a.localeCompare(b);
-    });
-    return copy;
-  }, [tags, tagCounts]);
-
-  const allTags = [null, ...orderedTags];
-
-  return (
-    <div className="flex flex-wrap gap-2 p-2">
-      {allTags.map((tag, idx) => {
-        const label = tag === null ? "All" : tag;
-        const { bg, text } = getTagColor(tag, isDarkMode);
-
-        const count = tag ? tagCounts[tag] ?? 0 : Object.values(tagCounts).reduce((a, b) => a + b, 0);
-
-        return (
-          <button
-            key={`${label}-${idx}`}
-            onClick={() => onSelectTag(tag)}
-            style={{
-              backgroundColor: bg,
-              color: text,
-              opacity: selectedTag === tag ? 1 : 0.95,
-            }}
-            className={`px-4 py-2 mx-1 my-1 rounded-lg font-medium transition-colors duration-200 hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm ${selectedTag === tag ? "border-2 border-blue-700" : ""
-              }`}
-          >
-            <span className="mr-2">{label}</span>
-            <span className="text-sm opacity-80">({count})</span>
-          </button>
-        );
+export default function TagSelector({ tags, tagCounts, totalCount, selectedTag, onSelectTag }: TagSelectorProps) {
+  const orderedTags = useMemo(() => [...new Set(tags)].sort((a, b) => (tagCounts[b] || 0) - (tagCounts[a] || 0) || a.localeCompare(b)), [tags, tagCounts]);
+  return <section id="practice-topic-filter" className="desk-tag-panel" aria-label="Filter problems by topic">
+    <div className="desk-tag-panel-heading"><div><SlidersHorizontal size={14} aria-hidden="true" /><h3>CHOOSE A TOPIC</h3></div><span>{orderedTags.length} TOPICS</span></div>
+    <div className="desk-tag-options" role="group" aria-label="Problem topics">
+      {[null, ...orderedTags].map(tag => {
+        const active = selectedTag === tag;
+        const count = tag === null ? totalCount : tagCounts[tag] || 0;
+        return <button key={tag ?? "all"} type="button" className="desk-tag-chip" data-tone={tag === null ? "all" : toneFor(tag)} aria-pressed={active} onClick={() => onSelectTag(tag)}>
+          <span className="desk-tag-mark" aria-hidden="true">{active && <Check size={11} strokeWidth={3} />}</span>
+          <span className="desk-tag-label">{tag ?? "All problems"}</span><span className="desk-tag-count">{count.toLocaleString()}</span>
+        </button>;
       })}
     </div>
-  );
-};
-
-export default TagSelector;
+    <p className="desk-tag-hint">One topic at a time. Counts overlap because problems can have multiple topics.</p>
+  </section>;
+}
